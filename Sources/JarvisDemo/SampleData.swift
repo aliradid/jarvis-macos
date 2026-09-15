@@ -62,21 +62,47 @@ enum SampleData {
     }
     static let machines = [MachineHealth(id: "mac", name: "Sample Mac", subtitle: "Local machine", online: true, memory: "16 GB", load: "1.20", disk: "42%"), MachineHealth(id: "vps", name: "Sample VPS", subtitle: "Remote machine", online: true, memory: "2 / 8 GB", load: "0.45", disk: "28%")]
     static let connections = [ConnectionHealth(id: "tunnel", name: "SSH tunnel", detail: "Sample connection", healthy: true), ConnectionHealth(id: "scout", name: "VPS proxy", detail: "Sample connection", healthy: true), ConnectionHealth(id: "mobile", name: "Mobile proxy", detail: "Sample connection", healthy: true)]
-    static var youtube: YouTubeSnapshot {
-        let channels: [YouTubeChannelSnapshot] = (0..<3).map { c in
-            let days = (0..<30).map { i in
-                YouTubeDay(day: ytDay(day(i-32)), views: Double(1100+c*550+i*43+(i%5)*140), watchMinutes: Double(3500+c*500+i*90), gained: Double(10+i%9), lost: 2, engagedViews: Double(900+c*400+i*35))
-            }
-            let recent = (0..<4).map { i in
-                YouTubeRecentVideo(id: String(format: "sample%05d", c*10+i), title: "Sample video \(i+1)", views: Double(8000+i*1300), duration: 420, publishedAt: day(-10-i*4).ISO8601Format(), first3: Double(2100+i*400), first7: Double(4500+i*700), fetchedAt: now)
-            }
-            let revenue = days.map { YouTubeRevenueDay(day: $0.day, amount: $0.views * 0.002) }
-            func window(_ count: Int) -> YouTubeFinancialWindow {
-                let selected = Array(days.suffix(count))
-                return YouTubeFinancialWindow(fromDate: selected.first!.day, through: selected.last!.day, amount: selected.reduce(0) { $0+$1.views*0.002 }, engagedViews: selected.reduce(0) { $0+($1.engagedViews ?? 0) })
-            }
-            return YouTubeChannelSnapshot(id: "UC"+String(repeating: String(c), count: 22), name: "Channel \(Character(UnicodeScalar(65+c)!))", fetchedAt: now, startDate: days.first!.day, endDate: days.last!.day, days: days, videos: [], financials: YouTubeFinancials(last7: window(7), last30: window(30), lifetime: window(30), fetchedAt: now), details: YouTubeDetails(recent: recent, uploadsAt: now, revenue: revenue, revenueAt: now, currency: "USD"))
+    private static func sampleDays(channel: Int) -> [YouTubeDay] {
+        var result: [YouTubeDay] = []
+        for index in 0..<30 {
+            let views = 1100 + channel * 550 + index * 43 + (index % 5) * 140
+            let minutes = 3500 + channel * 500 + index * 90
+            let engaged = 900 + channel * 400 + index * 35
+            let row = YouTubeDay(day: ytDay(day(index - 32)), views: Double(views), watchMinutes: Double(minutes), gained: Double(10 + index % 9), lost: 2, engagedViews: Double(engaged))
+            result.append(row)
         }
-        return YouTubeSnapshot(version: 1, checkedAt: now, channels: channels, competitors: [YouTubeCompetitor(id: "UC"+String(repeating: "9", count: 22), name: "Sample comparison channel", fetchedAt: now, videos: [YouTubeBreakout(id: "sample99999", title: "Sample comparison video", views: 24000, multiplier: 2.4, date: ytDay(day(-7)))])])
+        return result
+    }
+    private static func sampleVideos(channel: Int) -> [YouTubeRecentVideo] {
+        var result: [YouTubeRecentVideo] = []
+        for index in 0..<4 {
+            let id = String(format: "sample%05d", channel * 10 + index)
+            let published = day(-10 - index * 4).ISO8601Format()
+            let row = YouTubeRecentVideo(id: id, title: "Sample video \(index + 1)", views: Double(8000 + index * 1300), duration: 420, publishedAt: published, first3: Double(2100 + index * 400), first7: Double(4500 + index * 700), fetchedAt: now)
+            result.append(row)
+        }
+        return result
+    }
+    private static func financialWindow(_ days: [YouTubeDay], count: Int) -> YouTubeFinancialWindow {
+        let selected = Array(days.suffix(count))
+        let amount = selected.reduce(0.0) { $0 + $1.views * 0.002 }
+        let engaged = selected.reduce(0.0) { $0 + ($1.engagedViews ?? 0) }
+        return YouTubeFinancialWindow(fromDate: selected.first!.day, through: selected.last!.day, amount: amount, engagedViews: engaged)
+    }
+    static var youtube: YouTubeSnapshot {
+        var channels: [YouTubeChannelSnapshot] = []
+        for index in 0..<3 {
+            let days = sampleDays(channel: index)
+            let recent = sampleVideos(channel: index)
+            let revenue = days.map { YouTubeRevenueDay(day: $0.day, amount: $0.views * 0.002) }
+            let financials = YouTubeFinancials(last7: financialWindow(days, count: 7), last30: financialWindow(days, count: 30), lifetime: financialWindow(days, count: 30), fetchedAt: now)
+            let details = YouTubeDetails(recent: recent, uploadsAt: now, revenue: revenue, revenueAt: now, currency: "USD")
+            let name = "Channel " + String(Character(UnicodeScalar(65 + index)!))
+            let channel = YouTubeChannelSnapshot(id: "UC" + String(repeating: String(index), count: 22), name: name, fetchedAt: now, startDate: days.first!.day, endDate: days.last!.day, days: days, videos: [], financials: financials, details: details)
+            channels.append(channel)
+        }
+        let video = YouTubeBreakout(id: "sample99999", title: "Sample comparison video", views: 24000, multiplier: 2.4, date: ytDay(day(-7)))
+        let competitor = YouTubeCompetitor(id: "UC" + String(repeating: "9", count: 22), name: "Sample comparison channel", fetchedAt: now, videos: [video])
+        return YouTubeSnapshot(version: 1, checkedAt: now, channels: channels, competitors: [competitor])
     }
 }
