@@ -1,58 +1,35 @@
 # Architecture
 
-## Public edition
+The public edition keeps the original SwiftUI views and model calculations. Small fixture stores replace private persistence, account readers, infrastructure probes and project discovery.
 
-```mermaid
-flowchart LR
-    Fixtures[Fictional fixtures] --> UI[SwiftUI demo]
-    UI --> Model[Shortcut and workspace model]
-    Model --> Plan[Launch-plan preview]
-    UI --> Language[Local Darija transliteration]
-    Fixtures --> Panel[Floating NSPanel]
-    Panel --> Popovers[Quota details and quick access]
-    Tests[Regression tests] --> Model
-    Tests --> Storage[Configuration storage]
-    Storage --> Temp[Isolated temporary files]
-```
+| Source | Contents |
+| --- | --- |
+| JarvisHome.swift, HomeDesk.swift | Navigation, original home, project library, setup preview, checklist, pins, quota strip |
+| Subscriptions.swift, OrbitComponents.swift | Orbit subscription UI, editor, billing and FX calculations, validation |
+| CatExpenses.swift | Cat expense UI, editor, validation and explicit import/export |
+| YouTubeMonitor.swift | Original analytics pages, charts and calculations |
+| AIQuotas.swift, Infrastructure.swift | Original quota and machine detail views with sample stores |
+| FloatingWidget.swift | Original bar composition, drag handle and channel popover; standalone demo window controller |
+| TileView.swift, ShortcutEditors.swift | Original tiles, context menus, link and workspace editors |
+| JarvisView.swift, InboxPanel.swift, Diagnostics.swift | Original assistant, preferences, messages, alerts and diagnostic views |
+| SampleData.swift, DemoStores.swift | Fictional records and disconnected service adapters |
+| Model.swift, Storage.swift, DarijaLatin.swift | Extracted shortcut model, recovery helpers and transliteration |
+| DemoApp.swift | App entry, environment injection and offscreen rendering |
 
-The UI has no network client, shell runner, browser-profile discovery or live provider adapter. Its edits are session-local. The storage component is exercised by tests independently of the UI.
+## Data and actions
 
-## File map
+The app starts from source-defined samples, never personal exports. It does not discover browser profiles, read the personal app's preferences, access credentials, scan project folders, launch commands or poll providers. Editing records and preferences changes session memory.
 
-- `Sources/JarvisDemo/DemoApp.swift`: navigation, dashboard, shortcut editing and image rendering.
-- `Sources/JarvisDemo/FloatingWidget.swift`: compact quota/status strip, fictional detail popovers, channel grid and floating panel lifecycle.
-- `Sources/JarvisDemo/DemoAnalytics.swift`: synthetic channel time series, derived revenue/RPM, category charts and session-only expense editing.
-- `Sources/JarvisDemo/DemoTheme.swift`: black/charcoal palette and original vector avatar.
-- `Sources/JarvisDemo/DemoFixtures.swift`: explicitly fictional shortcut data.
-- `Sources/JarvisDemo/Model.swift`: configuration types and pure operations for tiles, groups, links and workspaces.
-- `Sources/JarvisDemo/Storage.swift`: JSON validation, atomic persistence, backup recovery and artwork storage helpers.
-- `Sources/JarvisDemo/DarijaLatin.swift`: local transliteration dictionary and Unicode fallback.
-- `Tests/JarvisDemoTests/CoreTests.swift`: behavioral regression checks.
+Explicit file selection can read the files chosen by the person running the demo. Cat import/export remains functional. Selected shortcut artwork is copied into a unique temporary demo directory. The standalone storage helpers also accept caller-supplied paths and are exercised independently by the recovery tests.
 
-## Persistence contract
+Provider links remain ordinary, user-initiated links. Synthetic video and channel destinations use example.com. Thumbnail fetching is disconnected and uses the original placeholder. The assistant shows its actual composer and preferences; its adapter reports that no message was sent.
 
-1. Decode and validate a configuration before accepting it.
-2. Before replacing an existing valid configuration, write its bytes to a backup.
-3. Write the replacement atomically.
-4. On a read failure, preserve the damaged file before trying the backup.
-5. If recovery is impossible, return an explicit non-saveable state.
+## Recovery and validation
 
-This is a recovery mechanism, not encryption or a transactional database. Backup and primary-file writes are separate operations. `saveConfig` does not enforce a previously returned `canSave` flag; UI callers must do so. Paths passed to storage helpers must be trusted by their caller. The UI demo does not accept filesystem paths or expose artwork helpers.
+Configuration decoding preserves unreadable bytes and attempts recovery from a validated backup. The returned `canSave` flag must be honored by callers. Atomic replacement and backups support recovery; they are not encryption or a database transaction.
 
-## Identity and URL handling
-
-Tile IDs allow display names to change without breaking references. The model uses a truncated SHA-1 digest for deterministic file/link identifiers. That hash is an identity convenience, not a password hash, integrity guarantee or security boundary.
-
-Link editing accepts HTTP/HTTPS URLs and rejects embedded credentials. This validates input shape; it does not establish that a destination is trustworthy. The public demo only previews fixed example destinations and does not visit them.
-
-## Tests and limits
-
-Tests cover corruption with and without a valid backup, preserving a good backup, rejecting duplicate IDs and malformed fields, legacy decoding, URL validation, rename/search behavior, missing workspace members and transliteration.
-
-They do not establish the reliability of excluded integrations, concurrent file writers or the full personal application. Rendered screenshots verify the public view composition; they are not proof of live provider functionality.
+Subscription and cat edits use their original validators before accepting a new in-memory record. Original monthly normalization, currency conversion, status exclusions and analytics calculations are retained.
 
 ## Floating panel
 
-The panel uses `NSPanel` with `.borderless` and `.nonactivatingPanel`, a `.floating` window level, and `.canJoinAllSpaces` / `.fullScreenAuxiliary` collection behavior. A native drag handle delegates movement to the window. Hiding retains the same panel for restoration. The open button activates the demo's main window.
-
-This edition substitutes fixed data for the private app's quota and infrastructure stores. The widget and dashboard present the same fixed values. No polling, authentication, production preferences or position persistence is included. Brand icons are bundled static assets.
+The panel uses `.borderless` and `.nonactivatingPanel`, a `.floating` level and `.canJoinAllSpaces` / `.fullScreenAuxiliary`. The drag handle delegates movement to AppKit. Hiding retains the panel for restoration. Its stores are shared with the main window. The demo does not reuse the personal app's saved position or preferences.

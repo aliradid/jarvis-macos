@@ -7,11 +7,11 @@ struct ConfigLoad {
 }
 
 enum Storage {
-    static var baseDir: URL {
+    static let baseDir: URL = {
         // Public edition: isolated temporary data only; never open the personal app's store.
         FileManager.default.temporaryDirectory
-            .appendingPathComponent("JarvisPortfolioDemo", isDirectory: true)
-    }
+            .appendingPathComponent("JarvisPortfolioDemo-" + UUID().uuidString, isDirectory: true)
+    }()
     static var configURL: URL { baseDir.appendingPathComponent("config.json") }
     static var iconsDir: URL { baseDir.appendingPathComponent("icons", isDirectory: true) }
     static func backupURL(for url: URL) -> URL { url.appendingPathExtension("backup") }

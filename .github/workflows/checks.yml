@@ -14,7 +14,9 @@ jobs:
           persist-credentials: false
       - name: Check publication boundaries
         run: python3 scripts/check_publication.py
-      - name: Build the offline demo
+      - name: Build the demo
         run: swift build
       - name: Run regression tests
         run: bash scripts/test-core.sh
+      - name: Check original calculations and sample isolation
+        run: swift run JarvisDemo --check

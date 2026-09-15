@@ -1,38 +1,58 @@
 # Jarvis for macOS
 
-**A personal workspace dashboard built with Swift and SwiftUI.**
+**My native macOS workspace app, built with SwiftUI and AppKit.**
 
-Jarvis is my native macOS workspace app. It combines a compact dashboard with a floating quota bar that stays within reach while I work in other apps.
+Jarvis brings projects, shortcuts, subscriptions, cat expenses, YouTube analytics and account-usage indicators into one workspace. A floating widget keeps quotas and channel shortcuts within reach while using other apps.
 
-This repository is a **public portfolio edition**: a runnable offline demo, selected source from the personal application, and engineering notes. The screenshots show the public edition with fictional data. They do not show live account readings.
-
-## Floating widget
-
-![Floating quota bar with fictional readings](docs/images/floating-widget.png)
-
-The floating bar is a real AppKit panel, with the same arrangement as the personal app:
-
-- Codex weekly usage and Claude session/weekly usage.
-- Clickable quota and machine/connection details.
-- A quick-access grid for channel shortcuts.
-- A drag handle, hide button and button to return to Jarvis.
-- Floating window level and support for other Spaces and full-screen apps.
-
-Start the demo, then choose **Widget → Show floating widget** from the menu bar, or click the small picture-in-picture button in the dashboard header. Drag the dotted handle to move it. The close button hides it; the menu restores it. Position is session-local in this edition.
-
-Readings and shortcut destinations are fictional. The controls work locally; no provider, server, browser profile or personal account is accessed.
-
-![Quota details opened from the floating bar](docs/images/widget-details.png)
+This public edition uses the application's original views with **fictional records**. Channel names, projects, financial figures, machine details and account readings are samples. Private integrations are disconnected. Sample subscription amounts are not provider prices.
 
 ## Workspace
 
-The demo now follows the personal app's compact layout: narrow navigation rail, quota strip in the header, Mission Controls, quick access, recent work, checklist and pinned actions.
+![Workspace with sample projects and shortcuts](docs/images/overview.png)
 
-![Jarvis workspace with fictional data](docs/images/overview.png)
+The original home includes Mission Controls, quick access, Photoshop shortcuts, recent work, a checklist, pinned actions and items needing attention.
 
-## Try it
+## Floating widget
 
-Requires **macOS 13 or later** and **Swift 5.9 or later**, available through Xcode or the Xcode Command Line Tools. The package has no third-party dependencies.
+![Floating widget with sample readings](docs/images/floating-widget.png)
+
+Choose **Widget → Show floating widget** from the app's menu bar. Drag the dotted handle to move it, click the quota or connection indicators for details, or open the channel shortcut grid. The close button hides the panel; the menu restores it. The arrow returns to the main window.
+
+The widget uses the same quota strip and detail views as the dashboard. Its readings are fictional; it does not inspect signed-in accounts or probe machines.
+
+![Original quota panel with sample values](docs/images/widget-details.png)
+
+## Subscriptions
+
+![Orbit subscription interface with fictional records](docs/images/subscriptions.png)
+
+The original Orbit interface includes monthly and yearly USD/MAD totals, billing-cycle conversion, a renewal timeline, trials, ending plans, records needing review, search, sorting and archiving. The subscription editor retains price and date certainty, reminder settings, notes and source fields. Unknown costs and missing exchange rates are disclosed rather than counted as zero.
+
+## Expenses and analytics
+
+![Cat expenses with fictional records](docs/images/cats.png)
+
+Cat expenses retain the original monthly view, category totals, search, filters, editing, archiving and import/export controls.
+
+![YouTube analytics with fictional channels](docs/images/youtube.png)
+
+![Revenue and RPM with fictional channel figures](docs/images/revenue.png)
+
+YouTube includes the original Overview, Videos, What’s working and Competitors views. Revenue uses the original daily RPM chart and financial comparison table. Sample daily records feed the existing calculations; thumbnails use the existing empty-image presentation.
+
+## Projects, shortcuts and assistant
+
+![Project cards with sample projects](docs/images/projects.png)
+
+![Original shortcuts interface](docs/images/shortcuts.png)
+
+![Assistant interface without a connected account](docs/images/assistant.png)
+
+Project browsing and setup previews, shortcut editing, messages, diagnostics, and the assistant interface come from the personal app. The assistant does not generate replies in this edition. External project launching and server startup report that they are disabled.
+
+## Run
+
+Requires macOS 13 or later and Swift 5.9 or later. No third-party package dependencies are required.
 
 ```sh
 git clone https://github.com/aliradid/jarvis-macos.git
@@ -40,85 +60,19 @@ cd jarvis-macos
 swift run JarvisDemo
 ```
 
-- **Overview:** add and complete checklist items, pin sample actions, and preview workspace shortcuts.
-- **Shortcuts:** search, select and rename example shortcuts. Selection previews a launch plan; it does not open a browser or execute a command.
-- **Assistant:** edit a Darija phrase and see local Latin-script transliteration. Connected chat is excluded.
-- **Floating widget:** open popovers, preview channel shortcuts, drag, hide and restore the panel.
-- **Expenses:** filter categories and add sample expenses; totals and the chart update immediately.
-- **YouTube and Revenue:** switch between fictional channels and 7/30-day periods. Views, revenue and RPM are computed from the generated daily records.
-- **Pet expenses:** explore a separate sample spending ledger without pet names or personal records.
+Demo records and preferences reset with the app. Explicit file import/export and artwork selection use native file pickers. Public provider links open only when clicked. No account setup is needed.
 
-Demo edits remain in memory and reset when the app closes. No account setup is needed.
-
-## Expenses and analytics
-
-The spending and analytics features remain in the demo with entirely synthetic records. No real channel names, account identifiers, bills or financial figures are included.
-
-![Sample expenses with category totals](docs/images/expenses.png)
-
-![Revenue and RPM for fictional channels](docs/images/revenue.png)
-
-## What is included
-
-| Component | Origin | What you can inspect |
-| --- | --- | --- |
-| Shortcut and workspace model | Extracted from Jarvis; example ports normalized | Stable tile identity, search, grouping, overrides, URL validation and launch planning |
-| Configuration storage | Extracted from Jarvis; default directory isolated for this edition | Atomic writes, backups, corruption recovery and duplicate-ID validation |
-| Darija transliteration | Extracted from Jarvis; one domain-specific dictionary entry omitted | Local dictionary handling, diacritics and a system transliteration fallback |
-| SwiftUI workspace | Adapted to follow the personal app layout | Compact navigation, checklist, pins and shortcuts |
-| Floating widget | Adapted from the personal app panel and status strip | Floating NSPanel, drag handle, popovers, quick access and window controls |
-| Avatar | Extracted from the personal app | Original vector avatar |
-| Regression tests | Written for this edition | Recovery failures, preserved backups, rejected URLs and model behavior |
-
-The personal application also contains account integrations and operational workflows. Those adapters and their configuration are outside this repository. The public dashboard's quota, health and project cards are **fixtures**, not implemented integrations.
-
-## Engineering decisions
-
-### Protect recoverable data
-
-A failed settings decode must not silently replace a user's setup with defaults. The storage component preserves unreadable bytes, attempts recovery from a validated backup, and returns a `canSave` flag when editing must be blocked. Callers are responsible for honoring that flag.
-
-### Separate intent from execution
-
-The model builds a typed launch plan independently from opening a file or URL. That makes routing testable without launching applications. The public edition includes planning only.
-
-### Keep identity stable
-
-Changing a shortcut label or reconnecting a file should preserve its group membership, workspace references and artwork. Model operations update those properties without replacing the tile's identity.
-
-### Be explicit about unavailable information
-
-The demo distinguishes an unavailable reading from a numeric zero. Its sample status cards illustrate this presentation decision without querying a provider.
-
-Read the [architecture notes](docs/ARCHITECTURE.md) and [publication boundaries](docs/PUBLICATION.md).
-
-## Screens
-
-### Shortcuts
-
-![Searchable sample shortcuts](docs/images/shortcuts.png)
-
-### Local language support
-
-![Local assistant example](docs/images/assistant.png)
-
-Transliteration changes the writing system, not the meaning. The small dictionary is not a language model; unfamiliar words and names may require correction.
-
-## Verify
+## Checks
 
 ```sh
-bash scripts/test-core.sh
 python3 scripts/check_publication.py
+swift build
+bash scripts/test-core.sh
+swift run JarvisDemo --check
 ```
 
-The tests use unique temporary directories for storage scenarios. To regenerate the workspace and widget images from the SwiftUI views:
+The checks cover configuration recovery, URL validation, fixture decoding, subscription totals and edits, unknown costs, missing FX, cat archiving, analytics windows and session isolation. Screenshots are rendered from the demo views with `JarvisDemo --render OUTPUT_DIRECTORY`.
 
-```sh
-swift run JarvisDemo --render docs/images
-```
+See [architecture](docs/ARCHITECTURE.md), [source fidelity](docs/SOURCE_FIDELITY.md), [publication boundaries](docs/PUBLICATION.md) and [security](SECURITY.md).
 
-## About this repository
-
-Jarvis is my personal workspace app. This repository contains an offline demo and selected components from the app. Account integrations and personal configuration remain private.
-
-This is not the complete personal app, a production distribution, or a notarized macOS release. No open-source license is granted in this edition.
+This repository is a portfolio edition, not the complete personal app or a notarized release. No open-source license is granted in this edition. Brand artwork identifies the relevant services; it does not imply endorsement.

@@ -5,7 +5,7 @@ This repository was assembled as a separate public edition from explicitly selec
 ## Included
 
 - Reviewed model, storage and transliteration components.
-- A new offline SwiftUI presentation with fictional fixtures.
+- The original SwiftUI views with fictional fixtures and disconnected integration adapters.
 - Behavioral tests and documentation.
 - PNG images rendered directly from the public demo views.
 
