@@ -14,9 +14,15 @@ ALLOW = {
     'Sources/JarvisDemo/Storage.swift', 'Sources/JarvisDemo/DarijaLatin.swift',
     'Tests/JarvisDemoTests/CoreTests.swift',
     'docs/ARCHITECTURE.md', 'docs/PUBLICATION.md',
-    'docs/images/overview.png', 'docs/images/shortcuts.png', 'docs/images/language.png',
+    'docs/images/overview.png', 'docs/images/shortcuts.png', 'docs/images/assistant.png', 'docs/images/floating-widget.png', 'docs/images/widget-details.png',
     'scripts/check_publication.py', 'scripts/test-core.sh',
-    'Sources/JarvisDemo/DemoFixtures.swift',
+    'Sources/JarvisDemo/DemoFixtures.swift', 'Sources/JarvisDemo/DemoAnalytics.swift',
+    'docs/images/expenses.png', 'docs/images/revenue.png',
+    'Sources/JarvisDemo/DemoTheme.swift', 'Sources/JarvisDemo/FloatingWidget.swift',
+    'Sources/JarvisDemo/Resources/Brands/openai.png',
+    'Sources/JarvisDemo/Resources/Brands/anthropic.png',
+    'Sources/JarvisDemo/Resources/Brands/youtube.png',
+    'Sources/JarvisDemo/Resources/Brands/photoshop.png', 'docs/BRANDS.md',
 }
 RULES = {
     'private-key': r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----',
@@ -56,7 +62,7 @@ for name in sorted(files):
         while offset + 12 <= len(data):
             size = struct.unpack('>I', data[offset:offset+4])[0]
             kind = data[offset+4:offset+8]
-            if kind not in {b'IHDR', b'IDAT', b'IEND', b'sRGB', b'gAMA', b'cHRM', b'pHYs'}:
+            if kind not in {b'IHDR', b'PLTE', b'tRNS', b'IDAT', b'IEND', b'sRGB', b'gAMA', b'cHRM', b'pHYs'}:
                 failures.append((name, 'unapproved-png-metadata'))
             offset += 12 + size
             if kind == b'IEND':

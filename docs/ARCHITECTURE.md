@@ -8,6 +8,8 @@ flowchart LR
     UI --> Model[Shortcut and workspace model]
     Model --> Plan[Launch-plan preview]
     UI --> Language[Local Darija transliteration]
+    Fixtures --> Panel[Floating NSPanel]
+    Panel --> Popovers[Quota details and quick access]
     Tests[Regression tests] --> Model
     Tests --> Storage[Configuration storage]
     Storage --> Temp[Isolated temporary files]
@@ -18,6 +20,9 @@ The UI has no network client, shell runner, browser-profile discovery or live pr
 ## File map
 
 - `Sources/JarvisDemo/DemoApp.swift`: navigation, dashboard, shortcut editing and image rendering.
+- `Sources/JarvisDemo/FloatingWidget.swift`: compact quota/status strip, fictional detail popovers, channel grid and floating panel lifecycle.
+- `Sources/JarvisDemo/DemoAnalytics.swift`: synthetic channel time series, derived revenue/RPM, category charts and session-only expense editing.
+- `Sources/JarvisDemo/DemoTheme.swift`: black/charcoal palette and original vector avatar.
 - `Sources/JarvisDemo/DemoFixtures.swift`: explicitly fictional shortcut data.
 - `Sources/JarvisDemo/Model.swift`: configuration types and pure operations for tiles, groups, links and workspaces.
 - `Sources/JarvisDemo/Storage.swift`: JSON validation, atomic persistence, backup recovery and artwork storage helpers.
@@ -45,3 +50,9 @@ Link editing accepts HTTP/HTTPS URLs and rejects embedded credentials. This vali
 Tests cover corruption with and without a valid backup, preserving a good backup, rejecting duplicate IDs and malformed fields, legacy decoding, URL validation, rename/search behavior, missing workspace members and transliteration.
 
 They do not establish the reliability of excluded integrations, concurrent file writers or the full personal application. Rendered screenshots verify the public view composition; they are not proof of live provider functionality.
+
+## Floating panel
+
+The panel uses `NSPanel` with `.borderless` and `.nonactivatingPanel`, a `.floating` window level, and `.canJoinAllSpaces` / `.fullScreenAuxiliary` collection behavior. A native drag handle delegates movement to the window. Hiding retains the same panel for restoration. The open button activates the demo's main window.
+
+This edition substitutes fixed data for the private app's quota and infrastructure stores. The widget and dashboard present the same fixed values. No polling, authentication, production preferences or position persistence is included. Brand icons are bundled static assets.

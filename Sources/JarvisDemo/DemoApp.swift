@@ -1,217 +1,197 @@
 import SwiftUI
 import AppKit
 
-// This public presentation uses fictional fixtures. It has no provider adapters,
-// account discovery, shell execution, telemetry or production storage access.
-private enum Palette {
-    static let background = Color(red: 0.075, green: 0.08, blue: 0.085)
-    static let surface = Color(red: 0.115, green: 0.12, blue: 0.13)
-    static let muted = Color(red: 0.63, green: 0.65, blue: 0.68)
-    static let accent = Color(red: 0.91, green: 0.96, blue: 0.49)
-}
-
-
 struct DemoDashboard: View {
     @State var page = "Overview"
     @State private var query = ""
     @State private var config = DemoFixtures.config
-    @State private var message = "Choose a shortcut to preview its launch plan."
-    @State private var input = "واش المشروع واجد؟"
+    @State private var selectedID: String?
     @State private var alias = ""
-    @State private var selectedID: String? = nil
-    private let pages = [("Overview", "square.grid.2x2"), ("Shortcuts", "command"), ("Language", "text.bubble")]
-
+    @State private var message = ""
+    @State private var draft = ""
+    @State private var tasks = ["Review the home layout"]
+    @State private var done = Set<String>()
+    @State private var pins: [String] = []
+    @State private var input = "واش المشروع واجد؟"
+    private let pages = [("Overview", "square.grid.2x2"), ("Assistant", "bubble.left.and.bubble.right"), ("Projects", "square.stack.3d.up"), ("Shortcuts", "command"), ("Subscriptions", "creditcard"), ("Cats", "pawprint.fill"), ("YouTube", "play.rectangle"), ("Revenue", "dollarsign.circle")]
     var body: some View {
         HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    Image(systemName: "sparkle").font(.system(size: 26)).foregroundStyle(Palette.accent)
-                    Text("JARVIS").font(.system(size: 17, weight: .bold)).tracking(3)
-                }.padding(.bottom, 38)
-                Text("WORKSPACE").font(.system(size: 10, weight: .semibold)).tracking(2).foregroundStyle(Palette.muted).padding(.bottom, 12)
+            VStack(spacing: 10) {
+                JarvisAvatar().frame(width: 44, height: 44).padding(.top, 12)
                 ForEach(pages, id: \.0) { item in
                     Button { page = item.0 } label: {
-                        Label(item.0, systemImage: item.1)
-                            .font(.system(size: 13, weight: .medium))
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(13)
-                            .background(page == item.0 ? Palette.accent.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 9))
+                        VStack(spacing: 7) {
+                            Image(systemName: item.1).font(.system(size: 19, weight: .light))
+                            Text(item.0 == "Overview" ? "Home" : item.0).font(.system(size: 8, weight: .medium)).lineLimit(1).minimumScaleFactor(0.7)
+                        }.frame(width: 54, height: 54)
+                            .background(page == item.0 ? Palette.accent.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 14))
                             .foregroundStyle(page == item.0 ? Palette.accent : Palette.muted)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).accessibilityLabel(item.0)
                 }
                 Spacer()
-                Circle().fill(Palette.accent).frame(width: 7, height: 7)
-                Text("Portfolio edition").font(.system(size: 12, weight: .medium))
-                Text("Fictional data · Offline").font(.system(size: 11)).foregroundStyle(Palette.muted)
-            }.padding(26).frame(width: 220).background(Color.black.opacity(0.16))
-            VStack(alignment: .leading, spacing: 24) {
-                HStack {
-                    Text(page).font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.muted)
-                    Spacer()
-                    Text("NATIVE macOS / SWIFTUI").font(.system(size: 10, weight: .semibold)).tracking(2).foregroundStyle(Palette.muted)
+                Text("DEMO").font(.system(size: 9, weight: .semibold)).tracking(2).foregroundStyle(Palette.muted)
+                Image(systemName: "moon.fill").foregroundStyle(Palette.accent).padding(.bottom, 16)
+            }.frame(width: 76)
+            VStack(spacing: 0) {
+                HStack(spacing: 10) {
+                    Text(page).font(.system(size: 14, weight: .medium))
+                    DemoStatusStrip()
+                    Spacer(minLength: 0)
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(Palette.muted)
+                        TextField("Search your workspace", text: $query).textFieldStyle(.plain)
+                            .onChange(of: query) { _ in if !query.isEmpty { page = "Shortcuts" } }
+                    }.font(.system(size: 12)).padding(10).frame(width: 180).background(Palette.surface, in: RoundedRectangle(cornerRadius: 8))
+                    Button { DemoWidgetController.shared.show() } label: { Image(systemName: "pip").frame(width: 24, height: 24) }.buttonStyle(.plain).help("Show floating widget").accessibilityLabel("Show floating widget")
+                    Image(systemName: "bell").foregroundStyle(Palette.muted)
+                }.padding(.horizontal, 20).padding(.vertical, 11)
+                Divider()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        if page == "Overview" { overview }
+                        else if page == "Shortcuts" { shortcuts }
+                        else if page == "Assistant" { assistant }
+                        else if page == "Subscriptions" { DemoSpendingPage() }
+                        else if page == "Cats" { DemoSpendingPage(pets: true) }
+                        else if page == "YouTube" { DemoAnalyticsPage() }
+                        else if page == "Revenue" { DemoAnalyticsPage(revenue: true) }
+                        else { samplePage }
+                    }.padding(20).frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Rectangle().fill(Color.white.opacity(0.08)).frame(height: 1)
-                if page == "Overview" { overview }
-                else if page == "Shortcuts" { shortcuts }
-                else { language }
-                Spacer(minLength: 0)
-                HStack {
-                    Text("JARVIS").font(.system(size: 10, weight: .bold)).tracking(2)
-                    Spacer()
-                    Text("Public demo · Sample readings · Changes last for this session")
-                        .font(.system(size: 10)).foregroundStyle(Palette.muted)
+                if !message.isEmpty {
+                    HStack { Text(message).font(.system(size: 11)); Spacer(); Button("Dismiss") { message = "" }.buttonStyle(.plain) }.foregroundStyle(Palette.accent).padding(12)
                 }
-            }.padding(32).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }.frame(width: 1180, height: 840)
-            .background(Palette.background).foregroundStyle(Color.white)
-            .preferredColorScheme(.dark)
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+        }.frame(width: 1180, height: 900).background(Palette.background).foregroundStyle(.white).preferredColorScheme(.dark)
     }
 
     private var overview: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("A little less switching.").font(.system(size: 34, weight: .medium))
-                Text("Tools, usage and work in one quiet place.").foregroundStyle(Palette.muted).font(.system(size: 14))
-            }
-            HStack(spacing: 14) {
-                quota("Assistant A", value: "72%", caption: "Session remaining", progress: 0.72)
-                quota("Assistant B", value: "46%", caption: "Weekly remaining", progress: 0.46)
-                quota("Assistant C", value: "—", caption: "Unavailable sample", progress: nil)
-            }
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 19) {
-                    heading("Workspace health", "SAMPLE")
-                    health("Desktop", detail: "Local machine", value: "Ready", symbol: "desktopcomputer")
-                    Divider()
-                    health("Development service", detail: "Example environment", value: "Online", symbol: "server.rack")
-                    Divider()
-                    health("Remote workspace", detail: "No account connected", value: "Offline", symbol: "network", active: false)
-                }.padding(22).frame(maxWidth: .infinity).background(Palette.surface, in: RoundedRectangle(cornerRadius: 14))
-                VStack(alignment: .leading, spacing: 19) {
-                    heading("Ready to continue", "2 PROJECTS")
-                    project("Documentation refresh", detail: "Writing · Review draft", symbol: "doc.text")
-                    Divider()
-                    project("Interface study", detail: "Design · Explore concepts", symbol: "rectangle.3.group")
-                    Button { page = "Shortcuts" } label: {
-                        HStack { Text("Explore shortcuts"); Spacer(); Image(systemName: "arrow.right") }
-                            .font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.accent)
-                    }.buttonStyle(.plain)
-                }.padding(22).frame(maxWidth: .infinity).background(Palette.surface, in: RoundedRectangle(cornerRadius: 14))
-            }
-            HStack(spacing: 14) {
-                Image(systemName: "lock.shield").font(.system(size: 22)).foregroundStyle(Palette.accent)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Explore without connecting an account").font(.system(size: 13, weight: .medium))
-                    Text("This demo uses sample data. Live integrations stay in the private application.")
-                        .font(.system(size: 12)).foregroundStyle(Palette.muted)
+        VStack(alignment: .leading, spacing: 20) {
+            HStack { Text("Your workspace").font(.system(size: 19, weight: .medium)); Spacer(); Text("Sample workspace").font(.system(size: 11)).foregroundStyle(Palette.muted) }
+            Button { page = "Projects" } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("Needs your attention", systemImage: "exclamationmark.circle").font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.accent)
+                    HStack { Text("Studio · The next episode is ready for review").font(.system(size: 12)); Spacer(); Text("Review  ›").font(.system(size: 11)).foregroundStyle(Palette.accent) }
+                }.padding(13).background(Palette.surface, in: RoundedRectangle(cornerRadius: 10))
+            }.buttonStyle(.plain)
+            HStack(alignment: .top, spacing: 24) {
+                VStack(alignment: .leading, spacing: 16) {
+                    section("Mission Controls")
+                    ForEach(Array(["Studio", "Research", "Design", "Development", "Writing", "Archive"].enumerated()), id: \.offset) { index, name in
+                        Button { message = "Preview: \(name) workspace. No external service is opened." } label: {
+                            HStack { Circle().fill(index == 0 ? Palette.online : Palette.accent).frame(width: 5, height: 5); Text(name).font(.system(size: 12)); Spacer(); Image(systemName: index == 0 ? "arrow.up.right" : "power").font(.system(size: 10)).foregroundStyle(Palette.muted) }
+                        }.buttonStyle(.plain)
+                    }
+                }.frame(width: 190)
+                VStack(alignment: .leading, spacing: 12) {
+                    section("Quick access")
+                    HStack(spacing: 6) { ForEach(["Studio EN", "Studio FR", "Studio ES", "Studio JP", "Studio IT"], id: \.self) { name in quickTile(name, symbol: "play.rectangle.fill", subtitle: "Chrome profile") } }
+                    Text("PHOTOSHOP").font(.system(size: 9)).foregroundStyle(Palette.muted)
+                    HStack(spacing: 6) { ForEach(["ENGLISH", "FRENCH", "SPANISH", "JAPANESE", "ITALIAN"], id: \.self) { name in quickTile(name, symbol: "doc.richtext", subtitle: "PSD") } }
+                    Button("All files & shortcuts ↗") { page = "Shortcuts" }.font(.system(size: 11)).foregroundStyle(Palette.muted).buttonStyle(.plain)
                 }
-            }.padding(.top, 2)
+                Spacer(minLength: 0)
+            }
+            Divider()
+            HStack(alignment: .top, spacing: 28) {
+                VStack(alignment: .leading, spacing: 16) {
+                    section("Continue working")
+                    recent("Episode draft", detail: "Studio · EN", symbol: "folder")
+                    recent("Studio ES", detail: "Sample browser shortcut", symbol: "globe")
+                    recent("Studio EN", detail: "Sample browser shortcut", symbol: "globe")
+                    recent("SPANISH", detail: "PSD · Demo assets", symbol: "doc")
+                    recent("ENGLISH", detail: "PSD · Demo assets", symbol: "doc")
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack { section("My checklist"); Text("\(tasks.filter { !done.contains($0) }.count)").font(.caption).foregroundStyle(Palette.muted) }
+                    HStack {
+                        TextField("Add something to do…", text: $draft).textFieldStyle(.plain).onSubmit(addTask)
+                        Button(action: addTask) { Image(systemName: "plus").frame(width: 26, height: 28) }.buttonStyle(.plain).accessibilityLabel("Add checklist item")
+                    }.font(.system(size: 12)).padding(.leading, 10).padding(.trailing, 3).background(Palette.surface, in: RoundedRectangle(cornerRadius: 8))
+                    ForEach(tasks, id: \.self) { task in
+                        Button { if done.contains(task) { done.remove(task) } else { done.insert(task) } } label: {
+                            HStack { Image(systemName: done.contains(task) ? "checkmark.circle.fill" : "circle").foregroundStyle(Palette.muted); Text(task).strikethrough(done.contains(task)); Spacer() }.font(.system(size: 12))
+                        }.buttonStyle(.plain)
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            HStack {
+                section("Pinned actions")
+                Spacer()
+                Menu("+ Add pin") { ForEach(["Documentation", "Project board", "Design library"], id: \.self) { name in Button(name) { if !pins.contains(name) { pins.append(name) } } } }.menuStyle(.borderlessButton).fixedSize().font(.system(size: 11)).foregroundStyle(Palette.accent)
+            }.padding(.top, 6)
+            if pins.isEmpty { Text("Pin the files and channel shortcuts you want one click away.").font(.system(size: 12)).foregroundStyle(Palette.muted) }
+            else { HStack { ForEach(pins, id: \.self) { name in quickTile(name, symbol: "pin", subtitle: "Sample shortcut") } } }
         }
     }
-
+    private func section(_ title: String) -> some View { Text(title).font(.system(size: 15, weight: .medium)) }
+    private func quickTile(_ title: String, symbol: String, subtitle: String) -> some View {
+        Button { message = "Preview: \(title). Sample item; no file or browser is opened." } label: {
+            VStack(spacing: 8) { BrandIcon(name: subtitle == "PSD" ? "photoshop" : "youtube").frame(width: 24, height: 24); Text(title).font(.system(size: 10, weight: .medium)); Text(subtitle).font(.system(size: 9)).foregroundStyle(Palette.muted) }
+                .frame(width: 92, height: 78).background(Palette.surface, in: RoundedRectangle(cornerRadius: 9))
+        }.buttonStyle(.plain)
+    }
+    private func recent(_ title: String, detail: String, symbol: String) -> some View {
+        Button { message = "Preview: \(title)" } label: {
+            HStack(spacing: 10) { Image(systemName: symbol).foregroundStyle(Palette.muted); VStack(alignment: .leading, spacing: 4) { Text(title).font(.system(size: 12)); Text(detail).font(.system(size: 10)).foregroundStyle(Palette.muted) }; Spacer(); Image(systemName: "arrow.up.right").font(.system(size: 10)).foregroundStyle(Palette.muted) }
+        }.buttonStyle(.plain)
+    }
+    private func addTask() {
+        let value = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !value.isEmpty && !tasks.contains(value) { tasks.append(value) }; draft = ""
+    }
     private var shortcuts: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Your next action, closer.").font(.system(size: 32, weight: .medium))
-            Text("Search, select and rename sample shortcuts using the extracted app model.")
-                .font(.system(size: 13)).foregroundStyle(Palette.muted)
-            TextField("Search shortcuts", text: $query).textFieldStyle(.plain)
-                .padding(12).background(Palette.surface, in: RoundedRectangle(cornerRadius: 8))
-                .accessibilityLabel("Search shortcuts")
+        VStack(alignment: .leading, spacing: 18) {
+            section("Files & shortcuts")
+            Text("Search from the header. Select a shortcut to preview its launch plan or rename it.").font(.system(size: 12)).foregroundStyle(Palette.muted)
             let tiles = visibleTiles(applyConfig(config.links.map(linkTile), config: config), config: config, query: query)
-            if tiles.isEmpty { Text("No matching shortcuts.").foregroundStyle(Palette.muted).padding() }
             ForEach(tiles) { tile in
-                Button {
-                    selectedID = tile.id; alias = tile.label
-                    let plan = launchPlan(for: tile)
-                    message = "Preview only: \(plan.kind) → \(plan.target)"
-                } label: {
-                    HStack(spacing: 16) {
-                        Text(initials(tile.label)).font(.system(size: 14, weight: .semibold))
-                            .frame(width: 44, height: 44).background(Palette.accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 10)).foregroundStyle(Palette.accent)
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(tile.label).font(.system(size: 14, weight: .medium))
-                            Text(tile.subtitle).font(.system(size: 11)).foregroundStyle(Palette.muted)
-                        }
-                        Spacer()
-                        Image(systemName: "arrow.up.right").foregroundStyle(Palette.muted)
-                    }.padding(16).background(Palette.surface, in: RoundedRectangle(cornerRadius: 12))
+                Button { selectedID = tile.id; alias = tile.label; message = "Preview only: " + launchPlan(for: tile).target } label: {
+                    HStack { Image(systemName: "globe").frame(width: 30); VStack(alignment: .leading, spacing: 5) { Text(tile.label); Text(tile.subtitle).font(.caption).foregroundStyle(Palette.muted) }; Spacer(); Image(systemName: "arrow.up.right") }.font(.system(size: 13)).padding(16).background(Palette.surface, in: RoundedRectangle(cornerRadius: 8))
                 }.buttonStyle(.plain)
             }
-            if let selectedID {
-                HStack {
-                    TextField("Shortcut label", text: $alias).textFieldStyle(.roundedBorder)
-                    Button("Rename") { config = renamed(config, id: selectedID, label: alias) }
-                }
+            if tiles.isEmpty { Text("No matching shortcuts").foregroundStyle(Palette.muted) }
+            if let selectedID { HStack { TextField("Shortcut label", text: $alias).textFieldStyle(.roundedBorder); Button("Rename") { config = renamed(config, id: selectedID, label: alias) } } }
+        }
+    }
+    private var assistant: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack { JarvisAvatar().frame(width: 35, height: 35); section("Jarvis") }
+            Text("Local language example").font(.system(size: 13, weight: .medium))
+            Text("Try an Arabic-script Darija phrase. This demo converts it to Latin script on your Mac; it does not call an AI provider.").font(.system(size: 12)).foregroundStyle(Palette.muted)
+            TextField("Type a phrase…", text: $input).font(.system(size: 22)).textFieldStyle(.plain).frame(height: 48).padding(14).background(Palette.surface, in: RoundedRectangle(cornerRadius: 10))
+            Text(DarijaLatin.render(input)).font(.system(size: 22)).padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Palette.surface, in: RoundedRectangle(cornerRadius: 10))
+            Text("Transliteration changes the writing system, not the meaning. Names and unfamiliar words may need correction.").font(.system(size: 11)).foregroundStyle(Palette.muted)
+        }
+    }
+    private var samplePage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            section(page)
+            Text("Sample content · Personal records and connected services stay private.").font(.system(size: 12)).foregroundStyle(Palette.muted)
+            if page == "Projects" {
+                recent("Episode draft", detail: "Ready for review · Studio", symbol: "folder")
+                recent("Interface study", detail: "In progress · Design", symbol: "folder")
+            } else if page == "Subscriptions" {
+                recent("Example editor", detail: "Sample plan · EUR 12 / month", symbol: "creditcard")
+                recent("Example storage", detail: "Sample plan · EUR 5 / month", symbol: "externaldrive")
+            } else {
+                Text("This section is available in the personal app. Its data and integrations are not included in this demo.").font(.system(size: 13)).foregroundStyle(Palette.muted)
             }
-            Text(message).font(.system(size: 12)).foregroundStyle(Palette.accent).textSelection(.enabled)
-            Button("Reset sample shortcuts") {
-                config = DemoFixtures.config; query = ""; selectedID = nil
-                message = "Choose a shortcut to preview its launch plan."
-            }.font(.system(size: 12)).buttonStyle(.plain).foregroundStyle(Palette.muted)
-        }
-    }
-
-    private var language: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Text("A familiar way to write.").font(.system(size: 32, weight: .medium))
-            Text("A small local Darija transliterator extracted from Jarvis.")
-                .font(.system(size: 14)).foregroundStyle(Palette.muted)
-            VStack(alignment: .leading, spacing: 16) {
-                heading("Arabic-script input", "EDITABLE")
-                TextField("Enter a phrase", text: $input).font(.system(size: 25)).textFieldStyle(.plain)
-                    .frame(height: 44).padding(12).background(Palette.background, in: RoundedRectangle(cornerRadius: 8))
-                    .accessibilityLabel("Arabic text to transliterate")
-            }.padding(24).background(Palette.surface, in: RoundedRectangle(cornerRadius: 14))
-            Image(systemName: "arrow.down").foregroundStyle(Palette.accent).padding(.leading, 24)
-            VStack(alignment: .leading, spacing: 16) {
-                heading("Latin-script output", "ON DEVICE")
-                Text(DarijaLatin.render(input)).font(.system(size: 28, weight: .medium))
-                    .foregroundStyle(Palette.accent).textSelection(.enabled)
-            }.padding(24).frame(maxWidth: .infinity, alignment: .leading).background(Palette.surface, in: RoundedRectangle(cornerRadius: 14))
-            Text("Transliteration changes the writing system; it does not translate meaning. Unknown words use the system transliterator. Names and spelling may need correction.")
-                .font(.system(size: 13)).foregroundStyle(Palette.muted).lineSpacing(5)
-        }
-    }
-
-    private func heading(_ title: String, _ detail: String) -> some View {
-        HStack { Text(title).font(.system(size: 14, weight: .medium)); Spacer(); Text(detail).font(.system(size: 8, weight: .semibold)).tracking(1).foregroundStyle(Palette.muted) }
-    }
-    private func quota(_ title: String, value: String, caption: String, progress: Double?) -> some View {
-        VStack(alignment: .leading, spacing: 15) {
-            Text(title).font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.muted)
-            Text(value).font(.system(size: 44, weight: .light, design: .rounded)).foregroundStyle(progress == nil ? Palette.muted : Palette.accent)
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.08))
-                    if let progress { Capsule().fill(Palette.accent).frame(width: geometry.size.width * progress) }
-                }
-            }.frame(height: 4)
-            Text(caption).font(.system(size: 11)).foregroundStyle(Palette.muted)
-        }.padding(22).frame(maxWidth: .infinity, alignment: .leading).background(Palette.surface, in: RoundedRectangle(cornerRadius: 14))
-    }
-    private func health(_ title: String, detail: String, value: String, symbol: String, active: Bool = true) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbol).frame(width: 20).foregroundStyle(Palette.muted)
-            VStack(alignment: .leading, spacing: 4) { Text(title).font(.system(size: 12)); Text(detail).font(.system(size: 10)).foregroundStyle(Palette.muted) }
-            Spacer()
-            Text(value).font(.system(size: 10, weight: .medium)).foregroundStyle(active ? Palette.accent : Palette.muted)
-        }
-    }
-    private func project(_ title: String, detail: String, symbol: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbol).font(.system(size: 19)).foregroundStyle(Palette.accent)
-            VStack(alignment: .leading, spacing: 6) { Text(title).font(.system(size: 12, weight: .medium)); Text(detail).font(.system(size: 10)).foregroundStyle(Palette.muted) }
-            Spacer()
         }
     }
 }
 
 struct PortfolioApp: App {
     var body: some Scene {
-        WindowGroup("Jarvis · Portfolio edition") { DemoDashboard() }
-            .windowResizability(.contentSize)
+        WindowGroup("Jarvis Demo") {
+            DemoDashboard().onAppear { NSApp.setActivationPolicy(.regular); NSApp.activate(ignoringOtherApps: true) }
+        }.windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
+            .commands { CommandMenu("Widget") {
+                Button("Show floating widget") { DemoWidgetController.shared.show() }
+                Button("Hide floating widget") { DemoWidgetController.shared.hide() }
+            } }
     }
 }
-
 @main
 struct DemoEntry {
     static func withoutPNGMetadata(_ data: Data) throws -> Data {
@@ -236,15 +216,24 @@ struct DemoEntry {
             let output = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
             do {
                 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
-                for page in ["Overview", "Shortcuts", "Language"] {
+                let renders: [(String, AnyView, NSSize)] = [
+                    ("overview", AnyView(DemoDashboard()), NSSize(width: 1180, height: 900)),
+                    ("shortcuts", AnyView(DemoDashboard(page: "Shortcuts")), NSSize(width: 1180, height: 900)),
+                    ("assistant", AnyView(DemoDashboard(page: "Assistant")), NSSize(width: 1180, height: 900)),
+                    ("floating-widget", AnyView(DemoFloatingBar()), NSSize(width: 590, height: 58)),
+                    ("widget-details", AnyView(DemoQuotaDetails()), NSSize(width: 474, height: 345)),
+                    ("expenses", AnyView(DemoDashboard(page: "Subscriptions")), NSSize(width: 1180, height: 900)),
+                    ("revenue", AnyView(DemoDashboard(page: "Revenue")), NSSize(width: 1180, height: 900))
+                ]
+                for (page, content, size) in renders {
                     _ = NSApplication.shared
-                    let view = NSHostingView(rootView: DemoDashboard(page: page))
+                    let view = NSHostingView(rootView: content)
                     view.sizingOptions = []
-                    view.frame = NSRect(x: 0, y: 0, width: 1180, height: 840)
+                    view.frame = NSRect(origin: .zero, size: size)
                     let window = NSWindow(contentRect: view.frame, styleMask: [.borderless], backing: .buffered, defer: false)
                     window.appearance = NSAppearance(named: .darkAqua)
                     window.contentView = view
-                    window.setContentSize(NSSize(width: 1180, height: 840))
+                    window.setContentSize(size)
                     window.setFrameOrigin(.zero)
                     view.layoutSubtreeIfNeeded()
                     window.displayIfNeeded()
@@ -258,7 +247,7 @@ struct DemoEntry {
                     try withoutPNGMetadata(data).write(to: output.appendingPathComponent(page.lowercased() + ".png"))
                     window.contentView = nil
                 }
-                print("Rendered three fictional-data demo screens.")
+                print("Rendered the workspace and floating-widget demo screens.")
             } catch { fputs("Render failed: \(error.localizedDescription)\n", stderr); exit(1) }
         } else { PortfolioApp.main() }
     }

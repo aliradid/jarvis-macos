@@ -6,6 +6,6 @@ let package = Package(
     platforms: [.macOS(.v13)],
     products: [.executable(name: "JarvisDemo", targets: ["JarvisDemo"])],
     targets: [
-        .executableTarget(name: "JarvisDemo")
+        .executableTarget(name: "JarvisDemo", resources: [.process("Resources")])
     ]
 )
