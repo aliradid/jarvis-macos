@@ -6,6 +6,7 @@ This repository was assembled as a separate public edition from explicitly selec
 
 - Reviewed model, storage and transliteration components.
 - The original SwiftUI views with fictional fixtures and disconnected integration adapters.
+- Explicitly approved provider and plan names, stripped of account, store, domain, person and channel/community identifiers.
 - Behavioral tests and documentation.
 - PNG images rendered directly from the public demo views.
 

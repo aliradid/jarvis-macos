@@ -12,13 +12,13 @@ The public edition keeps the original SwiftUI views and model calculations. Smal
 | FloatingWidget.swift | Original bar composition, drag handle and channel popover; standalone demo window controller |
 | TileView.swift, ShortcutEditors.swift | Original tiles, context menus, link and workspace editors |
 | JarvisView.swift, InboxPanel.swift, Diagnostics.swift | Original assistant, preferences, messages, alerts and diagnostic views |
-| SampleData.swift, DemoStores.swift | Fictional records and disconnected service adapters |
+| SampleData.swift, DemoStores.swift | Reviewed provider labels, fictional record fields and disconnected service adapters |
 | Model.swift, Storage.swift, DarijaLatin.swift | Extracted shortcut model, recovery helpers and transliteration |
 | DemoApp.swift | App entry, environment injection and offscreen rendering |
 
 ## Data and actions
 
-The app starts from source-defined samples, never personal exports. It does not discover browser profiles, read the personal app's preferences, access credentials, scan project folders, launch commands or poll providers. Editing records and preferences changes session memory.
+The app starts from source-defined samples and an explicitly reviewed provider/plan allowlist. No personal record export is bundled. It does not discover browser profiles, read the personal app's preferences, access credentials, scan project folders, launch commands or poll providers. Editing records and preferences changes session memory.
 
 Explicit file selection can read the files chosen by the person running the demo. Cat import/export remains functional. Selected shortcut artwork is copied into a unique temporary demo directory. The standalone storage helpers also accept caller-supplied paths and are exercised independently by the recovery tests.
 

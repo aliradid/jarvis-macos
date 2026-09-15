@@ -220,7 +220,49 @@ struct OrbitPrimaryButton: ButtonStyle {
     }
 }
 // Local provider artwork; no network requests or subscription data leave the app.
-let OrbitBrandNames: [(String,String)] = [("chatgpt","openai"),("claude","anthropic"),("youtube","youtube"),("adobe","photoshop")]
+let OrbitBrandNames: [(String,String)] = [
+    ("chatgpt","openai"),
+    ("claude","anthropic"),
+    ("youtube","youtube"),
+    ("adobe","adobe"),
+    ("amazon","amazon"),
+    ("apple music","applemusic"),
+    ("bevel","bevel"),
+    ("canva","canva"),
+    ("capcut","capcut"),
+    ("cleanmymac","cleanmymac"),
+    ("datacamp","datacamp"),
+    ("elevenlabs","elevenlabs"),
+    ("godaddy","godaddy"),
+    ("hiface","hiface"),
+    ("hypeproxy","hypeproxy"),
+    ("icloud","icloud"),
+    ("iproyal","iproyal"),
+    ("kimi","kimi"),
+    ("kindle","kindle"),
+    ("muzz","muzz"),
+    ("netflix","netflix"),
+    ("nexlev","nexlev"),
+    ("nindohost","nindohost"),
+    ("nindomail","nindomail"),
+    ("nodemaven","nodemaven"),
+    ("opal","opal"),
+    ("orange","orange"),
+    ("petrosky","petrosky"),
+    ("shopify","shopify"),
+    ("skool","skool"),
+    ("spotify","spotify"),
+    ("surfshark","surfshark"),
+    ("swimsuccess","swimsuccess"),
+    ("tapo","tapo"),
+    ("whoop","whoop"),
+    ("zwift","zwift"),
+    ("cfg bank","cfg"),
+    ("google ai","google"),
+    ("chess.com","chess"),
+    ("x premium","x"),
+    ("personality.co","personality"),
+]
 func OrbitBrandKey(_ name: String) -> String? {
     let normalized = name.trimmingCharacters(in:.whitespacesAndNewlines).lowercased()
     return OrbitBrandNames.first(where:{normalized.hasPrefix($0.0)})?.1

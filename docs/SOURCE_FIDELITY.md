@@ -17,7 +17,7 @@ This edition reuses the personal application's views. Demo adaptation happens pr
 
 | Boundary | Public-edition change |
 | --- | --- |
-| Personal identity and records | Fictional names, projects, paths, financial figures and readings; generic workspace label |
+| Personal identity and records | Approved provider and plan labels with identifying additions removed; fictional record fields, projects, paths, figures and readings; generic workspace label |
 | Account, machine and project readers | Replaced with fixture stores; no discovery, credentials, CLI calls, shell commands or probes |
 | Persistence | Session memory; isolated temporary artwork storage; original explicit file import/export retained |
 | Saved preferences | In-memory state instead of reading personal defaults |

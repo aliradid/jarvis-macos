@@ -1,25 +1,67 @@
 import Foundation
 
-// Fictional records, created independently of personal exports.
+// Approved provider/plan labels; all other record fields are fictional samples.
 enum SampleData {
     static let now = Date()
     static func day(_ offset: Int) -> Date { Calendar.current.date(byAdding: .day, value: offset, to: Calendar.current.startOfDay(for: now))! }
     static let rates = [("EUR", 0.9), ("GBP", 0.8), ("MAD", 10.0)].map { OrbitFXRate(date: ytDay(now), base: "USD", quote: $0.0, rate: $0.1) }
+    static let subscriptionNames = [
+        "Claude Max 20x",
+        "ElevenLabs Creator",
+        "Chess.com Platinum",
+        "CapCut Pro",
+        "DataCamp",
+        "X Premium+",
+        "Amazon Prime",
+        "Zwift",
+        "Kindle Unlimited",
+        "Google AI Pro 5 TB",
+        "PetroSky Mini",
+        "PetroSky Premium",
+        "IPRoyal proxy",
+        "Bevel Pro",
+        "Orange mobile",
+        "Adobe Creative Cloud Pro",
+        "iCloud+ 200 GB",
+        "Tapo Care — 1 camera",
+        "Apple Music Individual",
+        "YouTube Premium Family",
+        "Hiface",
+        "Opal Pro",
+        "Shopify",
+        "ChatGPT Pro 20x",
+        "Spotify",
+        "Nexlev Lite",
+        "Canva Pro",
+        "Kimi",
+        "WHOOP",
+        "CleanMyMac",
+        "SwimSuccess",
+        "Muzz Gold",
+        "NodeMaven ISP proxies",
+        "Claude Pro",
+        "GoDaddy",
+        "Personality.co",
+        "Surfshark",
+        "Skool",
+        "YouTube membership",
+        "Netflix",
+        "CFG Bank — Forfait Premier",
+        "Nindohost",
+        "Nindomail Professional",
+        "Nexlev Pro",
+        "HypeProxy — Mobile Proxy",
+    ]
     static var subscriptions: [OrbitSubscription] {
-        [("ChatGPT", 25.0, "USD", "Monthly", "Active", 8),
-         ("Claude", 30.0, "USD", "Monthly", "Active", 12),
-         ("Adobe", 18.0, "EUR", "Monthly", "Active", 18),
-         ("Example cloud", 120.0, "USD", "Yearly", "Active", 24),
-         ("Example editor", 15.0, "USD", "Monthly", "Trial", 2),
-         ("Example storage", 8.0, "USD", "Monthly", "Ending", 5),
-         ("Example service", 0.0, "USD", "Unknown", "Needs review", 0),
-         ("Example archive", 12.0, "USD", "Monthly", "Archived", -60)].enumerated().map { index, r in
-            var s = OrbitSubscription(name: r.0, amount: r.1, currency: r.2, cycle: r.3, date: day(r.5), status: r.4)
-            s.id = UUID(uuidString: String(format: "00000000-0000-4000-8000-%012d", index + 1))!
-            s.notes = "Fictional sample record. Amounts do not represent provider pricing or a personal account."
-            s.priceKnown = r.4 != "Needs review"; s.dateKnown = r.4 != "Needs review"
-            s.dateBasis = "Confirmed"; s.priceBasis = "Confirmed"
-            return s
+        subscriptionNames.enumerated().map { index, name in
+            let status = ["Active", "Active", "Active", "Active", "Trial", "Ending", "Needs review", "Archived"][index % 8]
+            let amount = Double(10 + (index % 5) * 5)
+            var item = OrbitSubscription(name: name, amount: amount, date: day(2 + index % 27), status: status)
+            item.id = UUID(uuidString: String(format: "00000000-0000-4000-8000-%012d", index + 1))!
+            item.notes = "Provider and plan name retained. Amount, dates, billing cycle and status are fictional demonstration values."
+            item.priceKnown = status != "Needs review"; item.dateKnown = status != "Needs review"
+            item.dateBasis = "Confirmed"; item.priceBasis = "Confirmed"
+            return item
         }
     }
     static var cats: [CatExpense] {

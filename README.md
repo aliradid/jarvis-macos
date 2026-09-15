@@ -4,7 +4,7 @@
 
 Jarvis brings projects, shortcuts, subscriptions, cat expenses, YouTube analytics and account-usage indicators into one workspace. A floating widget keeps quotas and channel shortcuts within reach while using other apps.
 
-This public edition uses the application's original views with **fictional records**. Channel names, projects, financial figures, machine details and account readings are samples. Private integrations are disconnected. Sample subscription amounts are not provider prices.
+This public edition uses the application's original views. Subscription **provider and plan names** come from my actual list, with account labels, stores, domains and other identifying additions removed. Subscription amounts, dates, cycles and statuses are fictional. Channel names, projects, financial figures, machine details and account readings are also samples. Private integrations are disconnected; sample subscription amounts are not provider prices.
 
 ## Workspace
 
@@ -24,7 +24,7 @@ The widget uses the same quota strip and detail views as the dashboard. Its read
 
 ## Subscriptions
 
-![Orbit subscription interface with fictional records](docs/images/subscriptions.png)
+![Orbit subscription interface with sanitized provider names and sample billing data](docs/images/subscriptions.png)
 
 The original Orbit interface includes monthly and yearly USD/MAD totals, billing-cycle conversion, a renewal timeline, trials, ending plans, records needing review, search, sorting and archiving. The subscription editor retains price and date certainty, reminder settings, notes and source fields. Unknown costs and missing exchange rates are disclosed rather than counted as zero.
 

@@ -6,7 +6,7 @@ import AppKit
     @Published var issue: String?
     @Published var loaded = false
     let fx = OrbitExchangeRates()
-    init() { items = SampleData.subscriptions; loaded = true }
+    init(items: [OrbitSubscription] = SampleData.subscriptions) { self.items = items; loaded = true }
     func load() async {}
     @discardableResult func save(_ item: OrbitSubscription) -> Bool {
         do {
