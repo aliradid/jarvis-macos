@@ -1,0 +1,15 @@
+.build/
+.swiftpm/
+.DS_Store
+*.app/
+*.dSYM/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.keychain*
+*.log
+*.jsonl
+private-review/
