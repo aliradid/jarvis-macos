@@ -8,7 +8,7 @@ This repository was assembled as a separate public edition from explicitly selec
 - The original SwiftUI views with fictional fixtures and disconnected integration adapters.
 - Explicitly approved provider and plan names, stripped of account, store, domain, person and channel/community identifiers.
 - Behavioral tests and documentation.
-- PNG images rendered directly from the public demo views.
+- PNG images rendered directly from the public demo views, apart from the subscriptions and cat expenses screenshots, which are deliberately published window captures of the personal app.
 
 ## Excluded
 
@@ -16,7 +16,7 @@ This repository was assembled as a separate public edition from explicitly selec
 - Personal configuration, account identifiers and billing records.
 - Infrastructure addresses, service configuration and private workspace paths.
 - Operational logs, private datasets, original app binaries and old build bundles.
-- Screenshots or recordings of the personal application's live state.
+- Recordings of the personal application's live state, and screenshots of it other than the two reviewed subscriptions and cat expenses images.
 
 ## Releasing changes
 
@@ -24,4 +24,4 @@ Run `python3 scripts/check_publication.py` and `bash scripts/test-core.sh` befor
 
 An allowlist or a pattern scan cannot prove that all sensitive information is absent. Review every new file and image manually. Do not add real configuration or credentials to make this demo functional; use synthetic fixtures.
 
-The render command creates images from known fictional views rather than capturing the desktop. Review regenerated images before committing them.
+The render command creates images from known fictional views rather than capturing the desktop. Review regenerated images before committing them. A capture of the personal app is published only after deciding, for that specific image, that every visible record can be public; strip its PNG metadata so the publication check passes.

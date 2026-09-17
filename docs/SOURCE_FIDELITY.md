@@ -30,4 +30,4 @@ This edition reuses the personal application's views. Demo adaptation happens pr
 
 The subscription model, billing normalization, FX conversion, validation, chart calculations and financial-window models retain the original implementation. Source comparisons were run for 14 view/model groups. The complete demo was built, its ten overview/widget images reviewed, and subscription editing and filtering checked in the running app.
 
-Fixture data illustrates existing states and controls. It does not represent provider pricing, live accounts, completed external actions or a different product design.
+Fixture data illustrates existing states and controls. It does not represent provider pricing, live accounts, completed external actions or a different product design. The subscriptions and cat expenses screenshots in the README are captures of the personal app rather than fixture renders, so the figures in those two images are real.

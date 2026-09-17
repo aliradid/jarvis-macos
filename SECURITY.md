@@ -1,6 +1,8 @@
 # Security
 
-The demo uses an explicitly reviewed list of real provider and plan names. Account labels, store names, personal domains, people and channel/community names are removed; duplicate account entries are combined. All other record fields are fictional, including amounts, dates, billing cycles and statuses. It does not access account credentials, browser sessions, personal application storage, machine probes, remote shells or project directories. No live integration adapter is included.
+The demo uses an explicitly reviewed list of real provider and plan names. Account labels, store names, personal domains, people and channel/community names are removed; duplicate account entries are combined. All other record fields in the demo are fictional, including amounts, dates, billing cycles and statuses. The demo does not access account credentials, browser sessions, personal application storage, machine probes, remote shells or project directories. No live integration adapter is included.
+
+Two documentation images are an exception to the fictional-record rule. The subscriptions and cat expenses screenshots are captures of the personal app, so the records, amounts and totals they show are real. Both were reviewed before publication; they carry no account identifiers, credentials or file paths, and their PNG metadata is stripped.
 
 Record edits and preferences remain in session memory. Explicit import/export and artwork selection use native file pickers; these actions read or write only when requested. Artwork is stored in a unique temporary demo directory. Public provider links open when clicked. Synthetic channel and video links use example.com; thumbnails do not make network requests.
 
