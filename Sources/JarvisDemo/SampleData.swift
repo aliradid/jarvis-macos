@@ -79,10 +79,10 @@ enum SampleData {
     }
     static var browserProfiles: [Tile] {
         [
-            Tile(id: "dev:github", kind: .chromeProfile, label: "GitHub Repos", detectedLabel: "GitHub", subtitle: "Developer profile", invocation: .openBrowser("https://github.com"), customImage: nil, iconSourcePath: nil),
-            Tile(id: "dev:cursor", kind: .chromeProfile, label: "Cursor AI", detectedLabel: "Cursor", subtitle: "AI code editor", invocation: .openBrowser("cursor://"), customImage: nil, iconSourcePath: nil),
-            Tile(id: "dev:claude", kind: .chromeProfile, label: "Claude Console", detectedLabel: "Claude", subtitle: "Anthropic API console", invocation: .openBrowser("https://claude.ai"), customImage: nil, iconSourcePath: nil),
-            Tile(id: "dev:terminal", kind: .chromeProfile, label: "iTerm2 Shell", detectedLabel: "Terminal", subtitle: "Zsh environment", invocation: .openBrowser("terminal://"), customImage: nil, iconSourcePath: nil)
+            Tile(id: "dev:github", kind: .link, label: "GitHub Repos", detectedLabel: "GitHub", subtitle: "Developer profile", invocation: .openURL(url: "https://github.com"), customImage: nil, iconSourcePath: nil),
+            Tile(id: "dev:cursor", kind: .link, label: "Cursor AI", detectedLabel: "Cursor", subtitle: "AI code editor", invocation: .openURL(url: "cursor://"), customImage: nil, iconSourcePath: nil),
+            Tile(id: "dev:claude", kind: .link, label: "Claude Console", detectedLabel: "Claude", subtitle: "Anthropic API console", invocation: .openURL(url: "https://claude.ai"), customImage: nil, iconSourcePath: nil),
+            Tile(id: "dev:terminal", kind: .link, label: "iTerm2 Shell", detectedLabel: "Terminal", subtitle: "Zsh environment", invocation: .openURL(url: "terminal://"), customImage: nil, iconSourcePath: nil)
         ]
     }
     static var workspace: Config {
