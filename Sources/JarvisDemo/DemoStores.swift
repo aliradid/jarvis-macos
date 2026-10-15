@@ -62,6 +62,16 @@ import AppKit
     }
 
     private func queryOllama(prompt: String, state: AppState) async {
+        // 1. Fetch available models from Ollama to pick whatever model the user has installed
+        var selectedModel = "llama3.2:latest"
+        if let tagsUrl = URL(string: "http://127.0.0.1:11434/api/tags"),
+           let (tagsData, _) = try? await URLSession.shared.data(from: tagsUrl),
+           let tagsObj = try? JSONSerialization.jsonObject(with: tagsData) as? [String: Any],
+           let modelsList = tagsObj["models"] as? [[String: Any]],
+           let firstModel = modelsList.first?["name"] as? String {
+            selectedModel = firstModel
+        }
+
         guard let url = URL(string: "http://127.0.0.1:11434/api/generate") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -70,7 +80,7 @@ import AppKit
 
         let systemPrompt = "You are Jarvis, a fast, helpful native macOS assistant. The user's system has shortcuts, subscriptions, and AI usage quotas. Keep replies concise and direct.\(history.notes.isEmpty ? "" : " User context: " + history.notes)"
         let body: [String: Any] = [
-            "model": "llama3.2:latest",
+            "model": selectedModel,
             "prompt": prompt,
             "system": systemPrompt,
             "stream": false

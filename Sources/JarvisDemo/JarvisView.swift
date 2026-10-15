@@ -33,7 +33,7 @@ struct JarvisView: View {
                         if jarvis.history.turns.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("What can I take off your plate?").font(.system(size: 24, weight: .semibold))
-                                Text("This demo contains sample Mission Control projects. Choose a project from Projects to explore its setup.").foregroundStyle(OLED.muted).fixedSize(horizontal: false, vertical: true)
+                                Text(AppMode.isDemo ? "This demo contains sample Mission Control projects. Choose a project from Projects to explore its setup." : "Ask anything, manage your daily agenda, or type 'open <shortcut>' to launch any app or file.").foregroundStyle(OLED.muted).fixedSize(horizontal: false, vertical: true)
                             }.padding(.vertical, 35)
                         }
                         ForEach(jarvis.history.turns) { turn in
@@ -48,9 +48,9 @@ struct JarvisView: View {
             }
             VStack(spacing: 10) {
                 HStack(spacing: 8) {
-                    suggestion("What’s ready to upload?")
-                    suggestion("What needs attention?")
-                    suggestion("What’s running?")
+                    suggestion("What's on my agenda today?")
+                    suggestion("Check my AI token quotas")
+                    suggestion("Summarize my subscriptions")
                     Spacer(minLength: 0)
                 }
                 HStack(alignment: .center, spacing: 10) {
