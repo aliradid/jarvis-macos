@@ -30,21 +30,22 @@ struct JarvisHome: View {
                 JarvisAvatar().frame(width: 44, height: 44).padding(.top, 12)
                 navigation("Overview", "square.grid.2x2")
                 navigation("Assistant", "bubble.left.and.bubble.right")
-                navigation("Projects", "square.stack.3d.up")
+                navigation("Projects", "folder.fill")
                 navigation("Shortcuts", "command")
                 navigation("Subscriptions", "creditcard")
-                navigation("Cats", "pawprint.fill")
-                navigation("YouTube", "play.rectangle")
+                navigation("Expenses", "chart.pie.fill", pageKey: "Cats")
+                navigation("Analytics", "chart.xyaxis.line", pageKey: "YouTube")
                 navigation("Revenue", "dollarsign.circle")
                 Spacer()
                 if AppMode.isDemo && !CommandLine.arguments.contains("--render") {
                     Text("DEMO").font(.system(size: 10, weight: .semibold)).tracking(2).foregroundStyle(OLED.muted)
                 }
-                Image(systemName: "moon.fill").foregroundStyle(OLED.accent).padding(.bottom, 16)
+                Image(systemName: "sparkles").foregroundStyle(OLED.accent).padding(.bottom, 16)
             }.padding(.horizontal, 14).frame(width: 76).background(OLED.canvas)
             VStack(spacing: 0) {
                 HStack(spacing: 10) {
-                    Text(page).font(.system(size: 14, weight: .medium))
+                    let displayTitle = page == "Cats" ? "Expenses" : page == "YouTube" ? "Analytics" : page
+                    Text(displayTitle).font(.system(size: 14, weight: .medium))
                     WorkspaceStatusStrip(quotas: quotaStore, infrastructure: infrastructureStore)
                     Spacer(minLength: 4)
                     HStack { Image(systemName: "magnifyingglass").foregroundStyle(OLED.muted); TextField("Search your workspace", text: $query).textFieldStyle(.plain).focused($searchFocused).onChange(of: query) { _ in if !query.isEmpty { page = "Shortcuts" } } }.font(.system(size: 12)).padding(10).frame(minWidth: 100, maxWidth: 200).background(OLED.surface, in: RoundedRectangle(cornerRadius: 8))
@@ -57,7 +58,7 @@ struct JarvisHome: View {
                 RetainedPageHost(key: page, content: AnyView(ZStack {
                     if page == "Assistant" {
                         JarvisView(jarvis: jarvis, draft: $composerDraft, embedded: true).environmentObject(state)
-                    } else if page == "Cats" {
+                    } else if page == "Cats" || page == "Expenses" {
                         CatsView(store: cats).environmentObject(subscriptions.fx)
                     } else if page == "Subscriptions" {
                         SubscriptionsPage(store: subscriptions, selectedID: selectedSubscription, initialQuery: subscriptionQuery, selectionConsumed: { selectedSubscription = nil })
@@ -75,7 +76,7 @@ struct JarvisHome: View {
                                         openProject: { project in setupProject = project })
                                     HStack(alignment: .top, spacing: 18) {
                                         VStack(alignment: .leading, spacing: 15) {
-                                            HStack { Text("Mission Controls").font(.system(size: 15, weight: .medium)); Spacer() }
+                                            HStack { Text("Local Dev Servers").font(.system(size: 15, weight: .medium)); Spacer() }
                                             VStack(alignment: .leading, spacing: 13) { ForEach(MissionSource.installed) { source in missionButton(source) } }
                                         }.frame(width: 200).padding(.top, 4)
                                         VStack(alignment: .leading, spacing: 15) {
@@ -86,14 +87,11 @@ struct JarvisHome: View {
                                                     return !MissionSource.installed.contains { $0.port == port }
                                                 }.prefix(6)) { tile in TileView(tile: tile, compact: true) }
                                             }
-                                            let photoshopFiles = state.fileTiles.filter { tile in
-                                                guard case .openFile(let path, _) = tile.invocation else { return false }
-                                                return ["psd", "psb"].contains((path as NSString).pathExtension.lowercased())
-                                            }
-                                            if !photoshopFiles.isEmpty {
-                                                Text("PHOTOSHOP").font(.system(size: 10, weight: .medium)).foregroundStyle(OLED.muted)
+                                            let devFiles = state.fileTiles.prefix(6)
+                                            if !devFiles.isEmpty {
+                                                Text("WORKSPACE ASSETS").font(.system(size: 10, weight: .medium)).tracking(1.5).foregroundStyle(OLED.muted)
                                                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 90, maximum: 120), spacing: 6)], alignment: .leading, spacing: 6) {
-                                                    ForEach(photoshopFiles) { tile in TileView(tile: tile, compact: true) }
+                                                    ForEach(devFiles) { tile in TileView(tile: tile, compact: true) }
                                                 }
                                             }
                                             Button("All files & shortcuts ↗") { page = "Shortcuts" }.buttonStyle(JarvisPlainButtonStyle()).font(.system(size: 12)).foregroundStyle(OLED.muted)
@@ -151,11 +149,13 @@ struct JarvisHome: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in jarvis.cancel() }
         .alert("Jarvis", isPresented: Binding(get: { state.errorMessage != nil }, set: { if !$0 { state.errorMessage = nil } })) { Button("OK") { state.errorMessage = nil } } message: { Text(state.errorMessage ?? "") }
     }
-    private func navigation(_ title: String, _ icon: String) -> some View {
-        Button { page = title } label: {
+    private func navigation(_ title: String, _ icon: String, pageKey: String? = nil) -> some View {
+        let target = pageKey ?? title
+        let isSelected = page == target || (page == "Cats" && target == "Cats") || (page == "YouTube" && target == "YouTube")
+        return Button { page = target } label: {
             VStack(spacing: 7) { Image(systemName: icon).font(.system(size: 19, weight: .light)); Text(title == "Overview" ? "Home" : title).font(.system(size: 8, weight: .medium)).lineLimit(1).minimumScaleFactor(0.7) }
-                .frame(width: 54, height: 54).background(page == title ? OLED.accent.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 14))
-                .foregroundStyle(page == title ? OLED.accent : OLED.muted)
+                .frame(width: 54, height: 54).background(isSelected ? OLED.accent.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 14))
+                .foregroundStyle(isSelected ? OLED.accent : OLED.muted)
         }.buttonStyle(JarvisPlainButtonStyle()).help(title).accessibilityLabel(title)
     }
     private func missionButton(_ source: MissionSource) -> some View {

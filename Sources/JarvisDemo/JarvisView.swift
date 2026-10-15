@@ -17,8 +17,8 @@ struct JarvisView: View {
                     Text("Assistant").font(.system(size: 9, weight: .medium, design: .monospaced)).kerning(2).foregroundStyle(OLED.accent)
                     Text(jarvis.busy ? "Working on it." : "At your command.").font(.system(size: embedded ? 21 : 25, weight: .light, design: .rounded))
                     HStack(spacing: 6) {
-                        Circle().fill(jarvis.busy ? OLED.offline : OLED.accent).frame(width: 4, height: 4)
-                        Text(jarvis.busy ? jarvis.progress : "Your projects. Your next move.").font(.system(size: 10, design: .monospaced)).foregroundStyle(OLED.muted).lineLimit(2)
+                        Circle().fill(jarvis.busy ? OLED.offline : OLED.online).frame(width: 5, height: 5)
+                        Text(jarvis.busy ? jarvis.progress : "Local Ollama active · 100% offline & private").font(.system(size: 11, design: .monospaced)).foregroundStyle(OLED.muted).lineLimit(2)
                     }
                 }
                 Spacer()

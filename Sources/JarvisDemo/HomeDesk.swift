@@ -16,7 +16,7 @@ struct DeskArchive: Codable {
     @Published private(set) var archive = DeskArchive()
     @Published private(set) var issue: String?
     init() {
-        if AppMode.isDemo { archive = DeskArchive(tasks: [DeskTask(title: "Review the sample project")], recent: ["chrome-profile:sample-0"], pins: []) }
+        if AppMode.isDemo { archive = DeskArchive(tasks: [DeskTask(title: "Optimize Ollama streaming latency"), DeskTask(title: "Monitor Claude Code 5h sliding window")], recent: ["dev:github", "dev:cursor"], pins: []) }
         else if let data = Storage.readData("desk.json"), let saved = try? JSONDecoder().decode(DeskArchive.self, from: data) { archive = saved }
     }
     private func update(_ change: (inout DeskArchive) -> Void) {

@@ -70,19 +70,32 @@ enum SampleData {
         }
     }
     static var sources: [MissionSource] {
-        (0..<4).map { MissionSource(id: "studio-\($0)", name: "Studio \(Character(UnicodeScalar(65+$0)!))", root: "Sample Projects/Studio-\($0)", port: 8080+$0, primaryLanguage: "en") }
+        [
+            MissionSource(id: "fastapi", name: "FastAPI Backend", root: "Backend/api", port: 8000, primaryLanguage: "python"),
+            MissionSource(id: "nextjs", name: "Next.js Frontend", root: "Frontend/web", port: 3000, primaryLanguage: "typescript"),
+            MissionSource(id: "ollama", name: "Ollama Local LLM", root: "Local/ollama", port: 11434, primaryLanguage: "go"),
+            MissionSource(id: "postgres", name: "PostgreSQL DB", root: "Database/pg", port: 5432, primaryLanguage: "sql")
+        ]
     }
     static var browserProfiles: [Tile] {
-        (0..<4).map { i in
-            let name = "Channel " + String(Character(UnicodeScalar(65+i)!))
-            return Tile(id: "chrome-profile:sample-\(i)", kind: .chromeProfile, label: name, detectedLabel: name, subtitle: "Sample Chrome profile", invocation: .openChromeProfile(dir: "Sample Profile \(i)"), customImage: nil, iconSourcePath: nil)
-        }
+        [
+            Tile(id: "dev:github", kind: .chromeProfile, label: "GitHub Repos", detectedLabel: "GitHub", subtitle: "Developer profile", invocation: .openBrowser("https://github.com"), customImage: nil, iconSourcePath: nil),
+            Tile(id: "dev:cursor", kind: .chromeProfile, label: "Cursor AI", detectedLabel: "Cursor", subtitle: "AI code editor", invocation: .openBrowser("cursor://"), customImage: nil, iconSourcePath: nil),
+            Tile(id: "dev:claude", kind: .chromeProfile, label: "Claude Console", detectedLabel: "Claude", subtitle: "Anthropic API console", invocation: .openBrowser("https://claude.ai"), customImage: nil, iconSourcePath: nil),
+            Tile(id: "dev:terminal", kind: .chromeProfile, label: "iTerm2 Shell", detectedLabel: "Terminal", subtitle: "Zsh environment", invocation: .openBrowser("terminal://"), customImage: nil, iconSourcePath: nil)
+        ]
     }
     static var workspace: Config {
         var c = Config()
-        for i in 0..<4 {
-            let file = FileEntry(id: "artwork-\(i)", path: "Sample Artwork/Design-\(i+1).psd")
-            c.files.append(file); c = renamed(c, id: "file:" + file.id, label: "Design \(i+1)")
+        let files = [
+            ("model-weights", "Models/llama-3.2-3b.gguf", "LLaMA 3.2 Model"),
+            ("api-spec", "Specs/openapi-v3.json", "OpenAPI Spec"),
+            ("system-arch", "Design/Architecture.sketch", "System Architecture"),
+            ("db-schema", "Database/schema.sql", "Database Schema")
+        ]
+        for f in files {
+            let file = FileEntry(id: f.0, path: f.1)
+            c.files.append(file); c = renamed(c, id: "file:" + file.id, label: f.2)
         }
         for source in sources {
             c.links.append(LinkEntry(id: source.id, url: "http://127.0.0.1:\(source.port)"))
@@ -91,10 +104,10 @@ enum SampleData {
         return c
     }
     static var projects: [MissionProject] {
-        [("Sample episode", "review", "Review", "Review the sample draft", false),
-         ("Sample tutorial", "finished", "Complete", "Ready", true),
-         ("Sample interview", "running", "Editing", "In progress", false)].enumerated().map { i, r in
-            MissionProject(id: "project-\(i)", sourceID: "studio-0", source: "Studio A", language: "en", title: r.0, folder: "Sample Projects/Project-\(i)", status: r.1, stage: r.2, detail: r.3, modified: now, video: r.4 ? "Sample Projects/Project-\(i)/video.mp4" : nil, thumbnails: [])
+        [("Jarvis macOS Core", "finished", "Shipped", "Native Swift & AppKit command HUD", true),
+         ("Local Agent Runner", "running", "Active", "Streaming Ollama LLM execution", false),
+         ("Cloud Sync Bridge", "review", "Review", "Zero-knowledge encrypted backups", false)].enumerated().map { i, r in
+            MissionProject(id: "project-\(i)", sourceID: "fastapi", source: "Jarvis Ecosystem", language: "swift", title: r.0, folder: "Projects/Project-\(i)", status: r.1, stage: r.2, detail: r.3, modified: now, video: nil, thumbnails: [])
         }
     }
     static var quotas: [AIQuota] {

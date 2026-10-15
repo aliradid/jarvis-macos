@@ -2,17 +2,17 @@ import SwiftUI
 import AppKit
 import ImageIO
 
-// Opaque surfaces keep the canvas truly black, independent of wallpaper or system tint.
+// Premium dark mode palette with elevated obsidian surfaces and cosmic violet accent
 enum OLED {
-    static let canvas = Color.black
-    static let surface = Color(red: 0.078, green: 0.076, blue: 0.071)
-    static let raised = Color(white: 0.075)
-    static let border = Color(white: 0.15)
-    static let text = Color(white: 0.94)
-    static let muted = Color(white: 0.64)
-    static let accent = Color(red: 1, green: 0.78, blue: 0.12)
-    static let online = Color(red: 0.29, green: 0.92, blue: 0.60)
-    static let offline = Color(red: 0.98, green: 0.69, blue: 0.32)
+    static let canvas = Color(red: 0.05, green: 0.05, blue: 0.075)
+    static let surface = Color(red: 0.09, green: 0.09, blue: 0.125)
+    static let raised = Color(red: 0.13, green: 0.13, blue: 0.175)
+    static let border = Color.white.opacity(0.08)
+    static let text = Color(white: 0.96)
+    static let muted = Color(white: 0.58)
+    static let accent = Color(red: 0.58, green: 0.38, blue: 1.0)
+    static let online = Color(red: 0.20, green: 0.88, blue: 0.55)
+    static let offline = Color(red: 0.98, green: 0.42, blue: 0.42)
 }
 
 struct LinkBadge: View {
