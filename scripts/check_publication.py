@@ -98,6 +98,7 @@ ALLOW = {
     'docs/images/assistant.png',
     'docs/images/cats.png',
     'docs/images/floating-widget.png',
+    'docs/images/logo.png',
     'docs/images/overview.png',
     'docs/images/projects.png',
     'docs/images/revenue.png',
@@ -106,6 +107,7 @@ ALLOW = {
     'docs/images/widget-details.png',
     'docs/images/youtube.png',
     'scripts/check_publication.py',
+    'scripts/install.sh',
     'scripts/test-core.sh',
 }
 

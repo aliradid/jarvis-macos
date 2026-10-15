@@ -77,7 +77,9 @@ private struct FloatingChannelAccess: View {
         guard statusItem == nil else { return }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "command.circle", accessibilityDescription: "Jarvis")
+            let img = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "Jarvis")
+            img?.isTemplate = true
+            button.image = img
             button.toolTip = "Jarvis · Click to toggle floating HUD (⌥⌘J)"
             button.action = #selector(MenuBarTarget.menuBarClicked)
             button.target = MenuBarTarget.shared

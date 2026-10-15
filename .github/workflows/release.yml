@@ -72,9 +72,12 @@ jobs:
           SetFile -c icnC dmg_root/.VolumeIcon.icns 2>/dev/null || true
           SetFile -a C dmg_root 2>/dev/null || true
           hdiutil create -volname "Jarvis" -srcfolder dmg_root -ov -format UDZO Jarvis.dmg
+          shasum -a 256 Jarvis.dmg > Jarvis.dmg.sha256
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
         with:
-          files: Jarvis.dmg
+          files: |
+            Jarvis.dmg
+            Jarvis.dmg.sha256
           generate_release_notes: true
