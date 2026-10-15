@@ -14,6 +14,10 @@ struct PortfolioApp: App {
                 NSApp.setActivationPolicy(.regular)
                 NSApp.activate(ignoringOtherApps: true)
                 DemoWidgetController.shared.setupMenuBar()
+                if let iconURL = Bundle.module.url(forResource: "AppIcon", withExtension: "icns"),
+                   let icon = NSImage(contentsOf: iconURL) {
+                    NSApp.applicationIconImage = icon
+                }
             }
         }.windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
             .commands {

@@ -20,6 +20,7 @@ ALLOW = {
     'README.md',
     'ROADMAP.md',
     'SECURITY.md',
+    'Sources/JarvisDemo/Resources/AppIcon.icns',
     'Sources/JarvisDemo/AIQuotaReaders.swift',
     'Sources/JarvisDemo/AIQuotas.swift',
     'Sources/JarvisDemo/AppState.swift',
@@ -154,6 +155,10 @@ for name in sorted(files):
                 break
         if not ended or offset != len(data):
             failures.append((name, 'malformed-png-or-trailing-data'))
+        continue
+    if name.endswith('.icns'):
+        if not data.startswith(b'icns'):
+            failures.append((name, 'invalid-icns'))
         continue
     try:
         text = data.decode('utf-8')
