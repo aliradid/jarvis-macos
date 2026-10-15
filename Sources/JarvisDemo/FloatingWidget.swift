@@ -78,7 +78,7 @@ private struct FloatingChannelAccess: View {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "command.circle", accessibilityDescription: "Jarvis")
-            button.action = #selector(menuBarClicked)
+            button.action = #selector(MenuBarTarget.menuBarClicked)
             button.target = MenuBarTarget.shared
         }
     }
