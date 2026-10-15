@@ -58,20 +58,31 @@ YouTube includes the original Overview, Videos, What’s working and Competitors
 
 Project browsing and setup previews, shortcut editing, messages, diagnostics, and the assistant interface come from the personal app. The assistant does not generate replies in this edition. External project launching and server startup report that they are disabled.
 
-## Run
+## Installation & Download
 
-Requires macOS 13 or later and Swift 5.9 or later. No external package dependencies are required.
+### Option 1: Download Pre-built App (Recommended)
+Download the latest `Jarvis.dmg` from the **[Releases](https://github.com/aliradid/jarvis-macos/releases)** page, open it, and drag **Jarvis.app** into your `/Applications` folder.
+
+### Option 2: Build & Run from Source
+Requires macOS 13 or later and Swift 5.9 or later. Zero external dependencies.
 
 ```sh
 git clone https://github.com/aliradid/jarvis-macos.git
 cd jarvis-macos
 
 # Run Jarvis (starts your own real workspace, saved locally)
-swift run JarvisDemo
+swift run Jarvis
 
 # Or explore in isolated demo mode with synthetic fixtures
-swift run JarvisDemo --demo
+swift run Jarvis --demo
 ```
+
+## Features
+
+- ⚡ **Menu Bar Status Item (`NSStatusItem`):** Click the Jarvis icon in your macOS top menu bar anytime to instantly toggle the floating HUD widget or jump into the workspace.
+- 🤖 **Offline Local AI Assistant:** Powered by Ollama (`127.0.0.1:11434`). Install [Ollama](https://ollama.com) (`brew install ollama && ollama run llama3.2`) to chat with your local LLM with zero API fees and complete privacy.
+- 📊 **Real-time Quota HUD:** Tracks 5-hour and weekly usage for Claude Code and OpenAI Codex directly from your local credentials.
+- 💳 **Orbit Subscriptions & Pet Expenses:** Native local-first financial records with automatic live currency conversion and atomic JSON backups.
 
 Your personal workspace configuration and records persist locally under `~/Library/Application Support/Jarvis/`. File import/export uses native macOS dialogs.
 

@@ -9,6 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 ALLOW = {
     '.github/workflows/checks.yml',
+    '.github/workflows/release.yml',
     '.gitignore',
     'LICENSE',
     'Package.swift',

@@ -71,6 +71,22 @@ private struct FloatingChannelAccess: View {
     static let shared = DemoWidgetController()
     private var panel: NSPanel?
     private var mainWindow: NSWindow?
+    private var statusItem: NSStatusItem?
+
+    func setupMenuBar() {
+        guard statusItem == nil else { return }
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = statusItem?.button {
+            button.image = NSImage(systemSymbolName: "command.circle", accessibilityDescription: "Jarvis")
+            button.action = #selector(menuBarClicked)
+            button.target = MenuBarTarget.shared
+        }
+    }
+
+    func toggleWidget() {
+        if panel?.isVisible == true { hide() } else { show() }
+    }
+
     func show() {
         if mainWindow == nil { mainWindow = NSApp.windows.first(where: { $0 is NSPanel == false && $0.canBecomeKey }) }
         if panel == nil {
@@ -97,5 +113,12 @@ private struct FloatingChannelAccess: View {
         NSApp.activate(ignoringOtherApps: true)
         mainWindow?.deminiaturize(nil)
         mainWindow?.makeKeyAndOrderFront(nil)
+    }
+}
+
+@MainActor private final class MenuBarTarget: NSObject {
+    static let shared = MenuBarTarget()
+    @objc func menuBarClicked() {
+        DemoWidgetController.shared.toggleWidget()
     }
 }

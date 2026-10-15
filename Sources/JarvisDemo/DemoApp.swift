@@ -10,7 +10,11 @@ struct DemoDashboard: View {
 struct PortfolioApp: App {
     var body: some Scene {
         WindowGroup(AppMode.isDemo ? "Jarvis Demo" : "Jarvis") {
-            DemoDashboard().onAppear { NSApp.setActivationPolicy(.regular); NSApp.activate(ignoringOtherApps: true) }
+            DemoDashboard().onAppear {
+                NSApp.setActivationPolicy(.regular)
+                NSApp.activate(ignoringOtherApps: true)
+                DemoWidgetController.shared.setupMenuBar()
+            }
         }.windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
             .commands { CommandMenu("Widget") {
                 Button("Show floating widget") { DemoWidgetController.shared.show() }

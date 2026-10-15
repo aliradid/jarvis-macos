@@ -2,9 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "JarvisPortfolio",
+    name: "Jarvis",
     platforms: [.macOS(.v13)],
-    products: [.executable(name: "JarvisDemo", targets: ["JarvisDemo"])],
+    products: [
+        .executable(name: "Jarvis", targets: ["JarvisDemo"]),
+        .executable(name: "JarvisDemo", targets: ["JarvisDemo"])
+    ],
     targets: [
         .executableTarget(name: "JarvisDemo", resources: [.process("Resources")])
     ]

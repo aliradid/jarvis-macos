@@ -65,7 +65,7 @@ struct JarvisView: View {
                 }.padding(16).background(OLED.accent.opacity(0.035), in: JarvisPanel(cut: 12))
                     .overlay(JarvisPanel(cut: 12).stroke(OLED.accent.opacity(focused ? 0.65 : 0.3), lineWidth: 1))
                     .shadow(color: OLED.accent.opacity(focused ? 0.08 : 0), radius: 12)
-                Text("Demo mode: no AI account is connected. Messages and preferences stay in this session; external commands are disabled.")
+                Text(AppMode.isDemo ? "Demo mode: the assistant is disconnected. Run without --demo to chat with local Ollama!" : "Powered by local Ollama (127.0.0.1:11434). Zero API fees, 100% private.")
                     .font(.system(size: 10)).foregroundStyle(OLED.muted).frame(maxWidth: .infinity, alignment: .leading)
             }.padding(20)
         }.frame(minWidth: 460, maxWidth: .infinity, minHeight: embedded ? 360 : 560, maxHeight: .infinity).background(OLED.canvas).foregroundStyle(OLED.text).tint(OLED.accent).preferredColorScheme(.dark)
