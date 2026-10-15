@@ -16,10 +16,15 @@ struct PortfolioApp: App {
                 DemoWidgetController.shared.setupMenuBar()
             }
         }.windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
-            .commands { CommandMenu("Widget") {
-                Button("Show floating widget") { DemoWidgetController.shared.show() }
-                Button("Hide floating widget") { DemoWidgetController.shared.hide() }
-            } }
+            .commands {
+                CommandMenu("Widget") {
+                    Button("Toggle floating widget") { DemoWidgetController.shared.toggleWidget() }
+                        .keyboardShortcut("j", modifiers: [.command, .option])
+                    Button("Show floating widget") { DemoWidgetController.shared.show() }
+                        .keyboardShortcut("w", modifiers: [.command, .option])
+                    Button("Hide floating widget") { DemoWidgetController.shared.hide() }
+                }
+            }
     }
 }
 @main

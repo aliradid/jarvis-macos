@@ -18,8 +18,9 @@ This roadmap outlines the planned evolution of **Jarvis for macOS** into the ult
 
 ---
 
-## ⚡ Near-Term: v1.1.0 (Workflow & Speed)
-- [ ] **Global Hotkey Daemon:** Configurable system-wide shortcut (e.g. `⌥ + Space`) to summon/hide the floating HUD widget from anywhere.
+## ⚡ Current Capabilities: v1.0.1 (Workflow & Speed)
+- [x] **Global Hotkeys:** `⌥ + ⌘ + J` to toggle the floating HUD widget from anywhere, `⌥ + ⌘ + W` to show.
+- [x] **Full Menu Bar Context Menu:** Left-click toggles the HUD; right-click opens quick controls and app actions.
 - [ ] **Expanded AI Quota Adapters:**
   - OpenRouter usage & credits tracking
   - DeepSeek API balance & rate-limit indicators

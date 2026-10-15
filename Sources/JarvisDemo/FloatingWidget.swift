@@ -78,10 +78,13 @@ private struct FloatingChannelAccess: View {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "command.circle", accessibilityDescription: "Jarvis")
+            button.toolTip = "Jarvis · Click to toggle floating HUD (⌥⌘J)"
             button.action = #selector(MenuBarTarget.menuBarClicked)
             button.target = MenuBarTarget.shared
         }
     }
+
+    func statusItemButton() -> NSStatusBarButton? { statusItem?.button }
 
     func toggleWidget() {
         if panel?.isVisible == true { hide() } else { show() }
@@ -116,9 +119,34 @@ private struct FloatingChannelAccess: View {
     }
 }
 
-@MainActor private final class MenuBarTarget: NSObject {
+@MainActor private final class MenuBarTarget: NSObject, NSMenuDelegate {
     static let shared = MenuBarTarget()
     @objc func menuBarClicked() {
-        DemoWidgetController.shared.toggleWidget()
+        guard let event = NSApp.currentEvent else {
+            DemoWidgetController.shared.toggleWidget()
+            return
+        }
+        if event.type == .rightMouseUp {
+            let menu = NSMenu()
+            menu.addItem(NSMenuItem(title: "Toggle Floating HUD", action: #selector(toggleHUD), keyEquivalent: "j"))
+            menu.items.last?.keyEquivalentModifierMask = [.command, .option]
+            menu.items.last?.target = self
+
+            menu.addItem(NSMenuItem(title: "Open Jarvis Workspace", action: #selector(openMain), keyEquivalent: "o"))
+            menu.items.last?.target = self
+
+            menu.addItem(NSMenuItem.separator())
+            menu.addItem(NSMenuItem(title: "Quit Jarvis", action: #selector(quitApp), keyEquivalent: "q"))
+            menu.items.last?.target = self
+
+            if let button = DemoWidgetController.shared.statusItemButton() {
+                menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+            }
+        } else {
+            DemoWidgetController.shared.toggleWidget()
+        }
     }
+    @objc private func toggleHUD() { DemoWidgetController.shared.toggleWidget() }
+    @objc private func openMain() { DemoWidgetController.shared.openMainWindow() }
+    @objc private func quitApp() { NSApp.terminate(nil) }
 }
