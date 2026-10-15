@@ -4,14 +4,12 @@ on:
     branches: [main]
   pull_request:
 permissions:
-  contents: read
+  contents: write
 jobs:
   verify:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
       - name: Check publication boundaries
         run: python3 scripts/check_publication.py
       - name: Build the demo
@@ -20,3 +18,17 @@ jobs:
         run: bash scripts/test-core.sh
       - name: Check original calculations and sample isolation
         run: swift run JarvisDemo --check
+      - name: Re-render showcase screenshots
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          swift run JarvisDemo --render docs/images
+          python3 scripts/check_publication.py
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/images/
+          if git diff --staged --quiet; then
+            echo "No screenshot changes"
+          else
+            git commit -m "Auto-update documentation screenshots with latest UI views [skip ci]"
+            git push origin main
+          fi

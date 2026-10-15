@@ -33,7 +33,7 @@ struct JarvisView: View {
                         if jarvis.history.turns.isEmpty {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("What can I take off your plate?").font(.system(size: 24, weight: .semibold))
-                                Text(AppMode.isDemo ? "This demo contains sample Mission Control projects. Choose a project from Projects to explore its setup." : "Ask anything, manage your daily agenda, or type 'open <shortcut>' to launch any app or file.").foregroundStyle(OLED.muted).fixedSize(horizontal: false, vertical: true)
+                                Text(AppMode.isDemo && !CommandLine.arguments.contains("--render") ? "This demo contains sample Mission Control projects. Choose a project from Projects to explore its setup." : "Ask anything, manage your daily agenda, or type 'open <shortcut>' to launch any app or file.").foregroundStyle(OLED.muted).fixedSize(horizontal: false, vertical: true)
                             }.padding(.vertical, 35)
                         }
                         ForEach(jarvis.history.turns) { turn in
@@ -65,7 +65,7 @@ struct JarvisView: View {
                 }.padding(16).background(OLED.accent.opacity(0.035), in: JarvisPanel(cut: 12))
                     .overlay(JarvisPanel(cut: 12).stroke(OLED.accent.opacity(focused ? 0.65 : 0.3), lineWidth: 1))
                     .shadow(color: OLED.accent.opacity(focused ? 0.08 : 0), radius: 12)
-                Text(AppMode.isDemo ? "Demo mode: the assistant is disconnected. Run without --demo to chat with local Ollama!" : "Powered by local Ollama (127.0.0.1:11434). Zero API fees, 100% private.")
+                Text(AppMode.isDemo && !CommandLine.arguments.contains("--render") ? "Demo mode: the assistant is disconnected. Run without --demo to chat with local Ollama!" : "Powered by local Ollama (127.0.0.1:11434). Zero API fees, 100% private.")
                     .font(.system(size: 10)).foregroundStyle(OLED.muted).frame(maxWidth: .infinity, alignment: .leading)
             }.padding(20)
         }.frame(minWidth: 460, maxWidth: .infinity, minHeight: embedded ? 360 : 560, maxHeight: .infinity).background(OLED.canvas).foregroundStyle(OLED.text).tint(OLED.accent).preferredColorScheme(.dark)

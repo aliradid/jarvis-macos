@@ -37,7 +37,7 @@ struct JarvisHome: View {
                 navigation("YouTube", "play.rectangle")
                 navigation("Revenue", "dollarsign.circle")
                 Spacer()
-                if AppMode.isDemo {
+                if AppMode.isDemo && !CommandLine.arguments.contains("--render") {
                     Text("DEMO").font(.system(size: 10, weight: .semibold)).tracking(2).foregroundStyle(OLED.muted)
                 }
                 Image(systemName: "moon.fill").foregroundStyle(OLED.accent).padding(.bottom, 16)

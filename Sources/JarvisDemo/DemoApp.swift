@@ -57,6 +57,10 @@ struct DemoEntry {
             let output = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
             do {
                 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+                JarvisStore.shared.history.turns = [
+                    JarvisTurn(role: "user", text: "What are my AI token quotas and system status?"),
+                    JarvisTurn(role: "assistant", text: "You have 82% remaining on Claude Code (5h window resets in 3h 14m) and 58% on OpenAI Codex. Local Ollama (llama3.2) is online and ready for private offline tasks.")
+                ]
                 let renders: [(String, AnyView, NSSize)] = [
                     ("overview", AnyView(DemoDashboard()), NSSize(width: 1180, height: 900)),
                     ("shortcuts", AnyView(DemoDashboard(page: "Shortcuts")), NSSize(width: 1180, height: 900)),
