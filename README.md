@@ -1,11 +1,14 @@
 # Jarvis for macOS
 
+[![Release](https://img.shields.io/github/v/release/aliradid/jarvis-macos?color=blue&logo=github)](https://github.com/aliradid/jarvis-macos/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-black.svg?logo=apple)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-5.9%2B-F05138.svg?logo=swift)](https://swift.org)
 [![Build & Checks](https://github.com/aliradid/jarvis-macos/actions/workflows/checks.yml/badge.svg)](https://github.com/aliradid/jarvis-macos/actions/workflows/checks.yml)
 
 **A native, OLED-dark macOS workspace dashboard and floating widget built with SwiftUI and AppKit.**
+
+[Download DMG](https://github.com/aliradid/jarvis-macos/releases) • [Roadmap](ROADMAP.md) • [Contributing](CONTRIBUTING.md) • [Architecture](docs/ARCHITECTURE.md)
 
 Jarvis brings your projects, local/browser shortcuts, subscriptions tracker, pet expenses, and real-time AI quota monitoring (Claude & Codex) into a cohesive, high-performance workspace.
 
