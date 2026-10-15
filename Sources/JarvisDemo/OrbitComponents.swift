@@ -175,7 +175,11 @@ func OrbitHigherMonthlyCost(_ a: OrbitSubscription, _ b: OrbitSubscription, rate
     @Published var rates: [OrbitFXRate] = []
     @Published var refreshing = false
     @Published var failure: String?
-    init() { rates = SampleData.rates }
+    init() {
+        if AppMode.isDemo { rates = SampleData.rates }
+        else if let data = Storage.readData("fx-rates.json"), let cached = try? JSONDecoder().decode([OrbitFXRate].self, from: data) { rates = cached }
+        else { Task { await refresh() } }
+    }
     var dateLabel: String {
         let dates = rates.map(\.date).sorted()
         guard let first = dates.first, let last = dates.last else { return "Rates unavailable" }
@@ -185,7 +189,7 @@ func OrbitHigherMonthlyCost(_ a: OrbitSubscription, _ b: OrbitSubscription, rate
         guard let oldest = rates.map(\.date).min(), let date = ISO8601DateFormatter().date(from:oldest + "T00:00:00Z") else { return true }
         return Date().timeIntervalSince(date) > 7 * 86400
     }
-    var status: String { (failure != nil ? "Offline · saved rates" : stale ? "Older saved rates" : "Sample FX rates") + " · " + dateLabel }
+    var status: String { (failure != nil ? "Offline · saved rates" : stale ? "Older saved rates" : AppMode.isDemo ? "Sample FX rates" : "Live FX rates") + " · " + dateLabel }
     func money(_ item: OrbitSubscription) -> String {
         guard item.hasPrice else { return "Price unknown" }
         guard let value = OrbitUsdValue(item.amount,currency:item.currency,rates:rates) else { return "USD rate unavailable" }
@@ -206,7 +210,22 @@ func OrbitHigherMonthlyCost(_ a: OrbitSubscription, _ b: OrbitSubscription, rate
         if item.status == "Trial" { return item.days < 0 ? "Trial ended · review status" : "Trial ends · " + dualMoney(item) }
         return (item.dateBasis == "Estimated" ? "Estimated · " : "") + dualMoney(item)
     }
-    func refresh(force: Bool = false) async { rates = SampleData.rates; failure = nil }
+    func refresh(force: Bool = false) async {
+        if AppMode.isDemo { rates = SampleData.rates; failure = nil; return }
+        refreshing = true; defer { refreshing = false }
+        struct Response: Decodable { let rates: [String: Double] }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: URL(string: "https://open.er-api.com/v6/latest/USD")!)
+            let response = try JSONDecoder().decode(Response.self, from: data)
+            let day = ytDay(Date())
+            let fresh = OrbitCurrencies.filter { $0 != "USD" }.compactMap { code in
+                response.rates[code].map { OrbitFXRate(date: day, base: "USD", quote: code, rate: $0) }
+            }
+            guard !fresh.isEmpty else { throw URLError(.cannotParseResponse) }
+            rates = fresh; failure = nil
+            if let encoded = try? JSONEncoder().encode(fresh) { Storage.writeData(encoded, named: "fx-rates.json") }
+        } catch { failure = error.localizedDescription }
+    }
 }
 
 

@@ -25,7 +25,29 @@ final class AppState: ObservableObject {
     private var detectedTiles: [Tile] = []
     private var discoveryTask: Task<Void, Never>?
 
-    init() { config = SampleData.workspace; reload() }
+    init() {
+        if AppMode.isDemo { config = SampleData.workspace }
+        else {
+            Storage.ensureDirs()
+            let loaded = Storage.loadRecovering()
+            config = loaded.config; canSave = loaded.canSave; notice = loaded.notice
+        }
+        reload()
+    }
+
+    /// Chrome profiles found in Chrome's own profile list (read-only; nothing else is touched).
+    private static func detectChromeProfiles() -> [Tile] {
+        let state = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/Google/Chrome/Local State")
+        guard let data = try? Data(contentsOf: state),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let cache = (root["profile"] as? [String: Any])?["info_cache"] as? [String: Any] else { return [] }
+        return cache.compactMap { dir, value -> Tile? in
+            guard let name = (value as? [String: Any])?["name"] as? String else { return nil }
+            return Tile(id: "chrome-profile:" + dir, kind: .chromeProfile, label: name, detectedLabel: name, subtitle: "Chrome profile",
+                        invocation: .openChromeProfile(dir: dir), customImage: nil, iconSourcePath: nil)
+        }.sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
+    }
 
     var allTiles: [Tile] { workspaceTiles + browserTiles + fileTiles }
     var memberTiles: [Tile] { browserTiles + fileTiles }
@@ -33,7 +55,7 @@ final class AppState: ObservableObject {
     var workspaces: [WorkspaceEntry] { config.workspaces }
     var collapsedGroups: [String] { config.collapsedGroups }
 
-    func reload() { applyDetectedTiles(SampleData.browserProfiles) }
+    func reload() { applyDetectedTiles(AppMode.isDemo ? SampleData.browserProfiles : Self.detectChromeProfiles()) }
 
     private func applyDetectedTiles(_ detected: [Tile]) {
         let merged = applyConfig(detected + config.links.map(linkTile) + config.files.map(fileTile), config: config).map(resolveImage)
@@ -62,6 +84,7 @@ final class AppState: ObservableObject {
     @discardableResult
     private func commit(_ next: Config) -> Bool {
         guard canSave else { errorMessage = "Editing is disabled until settings are recovered. Open the settings folder from the recovery banner."; return false }
+        if !AppMode.isDemo, case .failure(let error) = Storage.saveConfig(next) { errorMessage = "Your changes could not be saved: \(error.localizedDescription)"; return false }
         config = next; reload(); return true
     }
 
@@ -139,8 +162,54 @@ final class AppState: ObservableObject {
     }
     func removeWorkspace(_ id: String) { var next = config; next.workspaces.removeAll { $0.id == id }; commit(next) }
 
-    func launch(_ tile: Tile) { HomeDeskStore.shared.record(tile.id); notice = "Sample shortcut: " + tile.label + ". External launching is disabled in this demo." }
+    func launch(_ tile: Tile) {
+        HomeDeskStore.shared.record(tile.id)
+        if AppMode.isDemo { notice = "Sample shortcut: " + tile.label + ". External launching is disabled in this demo."; return }
+        notice = nil
+        perform(tile.invocation)
+    }
     func performJarvisAction(_ tile: Tile, startOnly: Bool) async throws { launch(tile) }
-    func startServer(_ tile: Tile) { notice = "Server startup is disabled in this demo." }
-    func refreshStatus() async { for link in config.links where isLocalServer(link.url) { statuses[link.id] = .online } }
+
+    private func perform(_ invocation: LaunchInvocation) {
+        switch invocation {
+        case .openFile(let path, let app):
+            guard FileManager.default.fileExists(atPath: path) else { errorMessage = "This file or folder no longer exists:\n\(path)"; return }
+            if let app { runOpen(["-a", app, path]) } else { runOpen([path]) }
+        case .openApp(let name): runOpen(["-a", name])
+        case .openChromeProfile(let dir): runOpen(["-na", "Google Chrome", "--args", "--profile-directory=" + dir])
+        case .openURL(let url, let profile):
+            if let profile { runOpen(["-na", "Google Chrome", "--args", "--profile-directory=" + profile, url]) } else { runOpen([url]) }
+        case .workspace(let id):
+            guard let entry = config.workspaces.first(where: { $0.id == id }) else { return }
+            for tileID in entry.tileIDs { if let tile = (browserTiles + fileTiles).first(where: { $0.id == tileID }) { perform(tile.invocation) } }
+        }
+    }
+    private func runOpen(_ arguments: [String]) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = arguments
+        do { try process.run() } catch { errorMessage = "Could not open this item: \(error.localizedDescription)" }
+    }
+
+    func startServer(_ tile: Tile) {
+        if AppMode.isDemo { notice = "Server startup is disabled in this demo."; return }
+        guard let startup = linkEntry(for: tile)?.startupFile, FileManager.default.fileExists(atPath: startup) else {
+            notice = "Add a startup file to this link (Edit…) to start its server from Jarvis."; return
+        }
+        runOpen([startup])
+        notice = "Opened the startup file for \(tile.label)."
+    }
+
+    func refreshStatus() async {
+        for link in config.links where isLocalServer(link.url) {
+            if AppMode.isDemo { statuses[link.id] = .online; continue }
+            statuses[link.id] = await Self.probe(link.url) ? .online : .offline
+        }
+    }
+    private static func probe(_ address: String) async -> Bool {
+        guard let url = URL(string: address) else { return false }
+        var request = URLRequest(url: url, timeoutInterval: 1.5)
+        request.httpMethod = "HEAD"
+        return (try? await URLSession.shared.data(for: request)) != nil
+    }
 }

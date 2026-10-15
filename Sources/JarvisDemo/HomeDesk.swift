@@ -15,8 +15,14 @@ struct DeskArchive: Codable {
     static let shared = HomeDeskStore()
     @Published private(set) var archive = DeskArchive()
     @Published private(set) var issue: String?
-    init() { archive = DeskArchive(tasks: [DeskTask(title: "Review the sample project")], recent: ["chrome-profile:sample-0"], pins: []) }
-    private func update(_ change: (inout DeskArchive) -> Void) { change(&archive) }
+    init() {
+        if AppMode.isDemo { archive = DeskArchive(tasks: [DeskTask(title: "Review the sample project")], recent: ["chrome-profile:sample-0"], pins: []) }
+        else if let data = Storage.readData("desk.json"), let saved = try? JSONDecoder().decode(DeskArchive.self, from: data) { archive = saved }
+    }
+    private func update(_ change: (inout DeskArchive) -> Void) {
+        change(&archive)
+        if let data = try? JSONEncoder().encode(archive) { Storage.writeData(data, named: "desk.json") }
+    }
     func add(_ title: String) {
         let text = String(title.trimmingCharacters(in: .whitespacesAndNewlines).prefix(300))
         guard !text.isEmpty else { return }

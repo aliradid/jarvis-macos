@@ -78,7 +78,7 @@ private struct FloatingChannelAccess: View {
             let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
             let size = host.fittingSize
             let window = NSPanel(contentRect: NSRect(x: screen.minX + 24, y: screen.maxY - size.height - 90, width: size.width, height: size.height), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-            window.title = "Jarvis Demo · Floating widget"
+            window.title = AppMode.isDemo ? "Jarvis Demo · Floating widget" : "Jarvis · Floating widget"
             window.level = .floating
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             window.hidesOnDeactivate = false

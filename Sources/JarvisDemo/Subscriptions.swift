@@ -6,14 +6,22 @@ import AppKit
     @Published var issue: String?
     @Published var loaded = false
     let fx = OrbitExchangeRates()
-    init(items: [OrbitSubscription] = SampleData.subscriptions) { self.items = items; loaded = true }
+    static let fileName = "subscriptions.json"
+    init(items: [OrbitSubscription]? = nil) {
+        if let items { self.items = items }
+        else if AppMode.isDemo { self.items = SampleData.subscriptions }
+        else if let data = Storage.readData(Self.fileName), let saved = try? OrbitValidatedBackup(data).subscriptions { self.items = saved }
+        loaded = true
+    }
     func load() async {}
     @discardableResult func save(_ item: OrbitSubscription) -> Bool {
         do {
             var next = items
             if let index = next.firstIndex(where: { $0.id == item.id }) { next[index] = item } else { next.append(item) }
             let data = try JSONEncoder().encode(OrbitBackup(subscriptions: next))
-            items = try OrbitValidatedBackup(data).subscriptions; issue = nil; return true
+            items = try OrbitValidatedBackup(data).subscriptions; issue = nil
+            Storage.writeData(data, named: Self.fileName)
+            return true
         } catch { issue = "Could not save your changes. Existing records were preserved."; return false }
     }
     var totals: String {

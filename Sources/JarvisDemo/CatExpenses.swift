@@ -27,12 +27,20 @@ func validatedCatBackup(_ data: Data) throws -> CatBackup {
     @Published var error: String?
     @Published var notice = ""
     private(set) var readable = true
-    init() { items = SampleData.cats }
+    static let fileName = "pet-expenses.json"
+    init() {
+        if AppMode.isDemo { items = SampleData.cats }
+        else if let data = Storage.readData(Self.fileName) {
+            do { items = try validatedCatBackup(data).expenses }
+            catch { readable = false; self.error = "Saved pet expenses could not be read, so saving is disabled to protect them. See \(Storage.baseDir.path)." }
+        }
+    }
     @discardableResult func commit(_ next: [CatExpense]) -> Bool {
         guard readable else { error = "Saving is disabled until the existing cat data can be read.";return false }
         do {
             let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted,.sortedKeys]
             let data = try encoder.encode(CatBackup(expenses:next)); _ = try validatedCatBackup(data)
+            Storage.writeData(data, named: Self.fileName)
             items = next;error = nil;return true
         } catch { self.error = "Expense not saved: \(error.localizedDescription)";return false }
     }

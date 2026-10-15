@@ -9,7 +9,7 @@ struct DemoDashboard: View {
 }
 struct PortfolioApp: App {
     var body: some Scene {
-        WindowGroup("Jarvis Demo") {
+        WindowGroup(AppMode.isDemo ? "Jarvis Demo" : "Jarvis") {
             DemoDashboard().onAppear { NSApp.setActivationPolicy(.regular); NSApp.activate(ignoringOtherApps: true) }
         }.windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
             .commands { CommandMenu("Widget") {

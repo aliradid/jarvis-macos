@@ -37,7 +37,9 @@ struct JarvisHome: View {
                 navigation("YouTube", "play.rectangle")
                 navigation("Revenue", "dollarsign.circle")
                 Spacer()
-                Text("DEMO").font(.system(size: 10, weight: .semibold)).tracking(2).foregroundStyle(OLED.muted)
+                if AppMode.isDemo {
+                    Text("DEMO").font(.system(size: 10, weight: .semibold)).tracking(2).foregroundStyle(OLED.muted)
+                }
                 Image(systemName: "moon.fill").foregroundStyle(OLED.accent).padding(.bottom, 16)
             }.padding(.horizontal, 14).frame(width: 76).background(OLED.canvas)
             VStack(spacing: 0) {

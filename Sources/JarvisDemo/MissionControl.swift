@@ -7,7 +7,7 @@ struct MissionSource: Identifiable, Codable, Hashable {
     let root: String
     let port: Int
     let primaryLanguage: String
-    static var installed: [MissionSource] { SampleData.sources }
+    static var installed: [MissionSource] { AppMode.isDemo ? SampleData.sources : [] }
 }
 
 struct MissionProject: Identifiable, Codable, Equatable {

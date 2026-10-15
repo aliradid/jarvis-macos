@@ -56,8 +56,19 @@ struct YouTubeSnapshot: Codable {
 @MainActor final class YouTubeMonitorStore: ObservableObject {
     @Published var snapshot: YouTubeSnapshot?
     @Published var issue: String?
-    init() { snapshot = SampleData.youtube }
-    func reload() async { snapshot = SampleData.youtube; issue = nil }
+    static let fileName = "youtube.json"
+    init() {
+        if AppMode.isDemo { snapshot = SampleData.youtube }
+        else if let data = Storage.readData(Self.fileName), let saved = try? JSONDecoder().decode(YouTubeSnapshot.self, from: data) { snapshot = saved }
+        else { snapshot = SampleData.youtube }
+    }
+    func reload() async {
+        if AppMode.isDemo { snapshot = SampleData.youtube; issue = nil; return }
+        if let data = Storage.readData(Self.fileName), let saved = try? JSONDecoder().decode(YouTubeSnapshot.self, from: data) {
+            snapshot = saved
+            issue = nil
+        }
+    }
 }
 
 

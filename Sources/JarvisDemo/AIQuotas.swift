@@ -29,9 +29,53 @@ enum AIService: String, CaseIterable, Identifiable {
     @Published var refreshing = false
     @Published var issue: String?
     @Published var providerIssues: [String: String] = [:]
-    init() { readings = SampleData.quotas }
+    init() {
+        if AppMode.isDemo { readings = SampleData.quotas }
+        else {
+            if let data = Storage.readData("ai-quotas.json"), let cached = try? JSONDecoder().decode([AIQuota].self, from: data) {
+                readings = cached
+            } else {
+                readings = SampleData.quotas
+            }
+            Task { await refresh() }
+        }
+    }
     func entries(_ service: AIService) -> [AIQuota] { readings.filter { $0.provider == service.id } }
-    func refresh(force: Bool = false) async { readings = SampleData.quotas }
+    func refresh(force: Bool = false) async {
+        if AppMode.isDemo { readings = SampleData.quotas; issue = nil; return }
+        refreshing = true
+        defer { refreshing = false }
+        var updated = readings
+        var newProviderIssues: [String: String] = [:]
+
+        // 1. Fetch Claude
+        do {
+            let claudeReadings = try await AIQuotaReaders.fetchClaudeQuotas()
+            if !claudeReadings.isEmpty {
+                updated.removeAll { $0.provider == AIService.claude.id }
+                updated.append(contentsOf: claudeReadings)
+            }
+        } catch {
+            newProviderIssues[AIService.claude.id] = error.localizedDescription
+        }
+
+        // 2. Fetch Codex
+        do {
+            let codexReadings = try await AIQuotaReaders.fetchCodexQuotas()
+            if !codexReadings.isEmpty {
+                updated.removeAll { $0.provider == AIService.openai.id }
+                updated.append(contentsOf: codexReadings)
+            }
+        } catch {
+            newProviderIssues[AIService.openai.id] = error.localizedDescription
+        }
+
+        readings = updated
+        providerIssues = newProviderIssues
+        if let encoded = try? JSONEncoder().encode(readings) {
+            Storage.writeData(encoded, named: "ai-quotas.json")
+        }
+    }
 }
 
 

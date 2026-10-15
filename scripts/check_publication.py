@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ALLOW = {
     '.github/workflows/checks.yml',
     '.gitignore',
+    'LICENSE',
     'Package.swift',
     'README.md',
     'SECURITY.md',

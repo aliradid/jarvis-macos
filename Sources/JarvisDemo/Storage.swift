@@ -6,15 +6,45 @@ struct ConfigLoad {
     var canSave = true
 }
 
+/// Demo mode (`--demo`, `--render`, `--check`) uses fictional sample data and an isolated temporary
+/// directory. Normal launches start empty and persist the user's own data on disk.
+enum AppMode {
+    static let isDemo: Bool = {
+        let args = CommandLine.arguments
+        return args.contains("--demo") || args.contains("--render") || args.contains("--check")
+    }()
+}
+
 enum Storage {
     static let baseDir: URL = {
-        // Public edition: isolated temporary data only; never open the personal app's store.
-        FileManager.default.temporaryDirectory
-            .appendingPathComponent("JarvisPortfolioDemo-" + UUID().uuidString, isDirectory: true)
+        if AppMode.isDemo {
+            return FileManager.default.temporaryDirectory
+                .appendingPathComponent("JarvisPortfolioDemo-" + UUID().uuidString, isDirectory: true)
+        }
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
+        return support.appendingPathComponent("Jarvis", isDirectory: true)
     }()
     static var configURL: URL { baseDir.appendingPathComponent("config.json") }
     static var iconsDir: URL { baseDir.appendingPathComponent("icons", isDirectory: true) }
     static func backupURL(for url: URL) -> URL { url.appendingPathExtension("backup") }
+
+    /// Reads a named data file from the app folder (nil in demo mode or when absent).
+    static func readData(_ name: String) -> Data? {
+        guard !AppMode.isDemo else { return nil }
+        return try? Data(contentsOf: baseDir.appendingPathComponent(name))
+    }
+
+    /// Atomically writes a named data file, keeping the previous version as `.backup`. No-op in demo mode.
+    static func writeData(_ data: Data, named name: String) {
+        guard !AppMode.isDemo else { return }
+        let url = baseDir.appendingPathComponent(name)
+        do {
+            try FileManager.default.createDirectory(at: baseDir, withIntermediateDirectories: true)
+            if let previous = try? Data(contentsOf: url) { try? previous.write(to: backupURL(for: url), options: .atomic) }
+            try data.write(to: url, options: .atomic)
+        } catch { fputs("Jarvis: could not save \(name): \(error.localizedDescription)\n", stderr) }
+    }
 
     static func ensureDirs() {
         try? FileManager.default.createDirectory(at: iconsDir, withIntermediateDirectories: true)
