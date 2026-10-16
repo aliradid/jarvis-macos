@@ -12,15 +12,8 @@ struct JarvisView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding private var draft: String
     @State private var preferences = false
-    @State private var selectedModel = "llama3.2:latest"
-    @State private var activePreset = "Architecture & Code"
     @FocusState private var focused: Bool
 
-    private let models = [
-        ("llama3.2:latest", "3.2B · Q4_K_M · 110 tok/s"),
-        ("deepseek-r1:14b", "14.8B · Reasoning · 48 tok/s"),
-        ("qwen2.5-coder:32b", "32.5B · Code Specialist · 24 tok/s")
-    ]
     private let presets = ["Architecture & Code", "Quota & Burn Advisor", "Shell & DevOps"]
 
     var body: some View {
@@ -40,12 +33,12 @@ struct JarvisView: View {
                 Spacer()
 
                 HStack(spacing: 6) {
-                    ForEach(models, id: \.0) { model in
-                        let isSel = selectedModel == model.0
-                        Button { selectedModel = model.0 } label: {
+                    ForEach(jarvis.availableModels, id: \.self) { model in
+                        let isSel = jarvis.selectedModel == model
+                        Button { jarvis.selectedModel = model } label: {
                             HStack(spacing: 5) {
                                 Image(systemName: "cpu.fill").font(.system(size: 9.5))
-                                Text(model.0).font(.system(size: 10.5, weight: .semibold, design: .monospaced)).lineLimit(1)
+                                Text(model).font(.system(size: 10.5, weight: .semibold, design: .monospaced)).lineLimit(1)
                             }
                             .padding(.horizontal, 9).padding(.vertical, 6)
                             .background(isSel ? OLED.accent.opacity(0.20) : OLED.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -69,8 +62,8 @@ struct JarvisView: View {
             HStack(spacing: 8) {
                 Text("MODE PRESET:").font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundStyle(OLED.muted)
                 ForEach(presets, id: \.self) { preset in
-                    let active = activePreset == preset
-                    Button { activePreset = preset } label: {
+                    let active = jarvis.activePreset == preset
+                    Button { jarvis.activePreset = preset } label: {
                         Text(preset)
                             .font(.system(size: 10.5, weight: .semibold))
                             .padding(.horizontal, 9).padding(.vertical, 4)
@@ -119,7 +112,7 @@ struct JarvisView: View {
                 }
                 HStack(alignment: .center, spacing: 12) {
                     Image(systemName: "sparkles").foregroundStyle(OLED.accent).font(.system(size: 14))
-                    TextField("Ask Jarvis (\(selectedModel)) or type 'open <service>'…", text: $draft).textFieldStyle(.plain).focused($focused)
+                    TextField("Ask Jarvis (\(jarvis.selectedModel)) or type 'open <service>'…", text: $draft).textFieldStyle(.plain).focused($focused)
                         .font(.system(size: 13.5))
                         .onSubmit { submit() }.accessibilityLabel("Ask Jarvis")
                     if jarvis.busy {
@@ -163,7 +156,7 @@ struct JarvisView: View {
                 Image(systemName: user ? "person.crop.circle.fill" : "cpu.fill")
                     .font(.system(size: 12))
                     .foregroundStyle(user ? OLED.cyan : OLED.accent)
-                Text(user ? "DEVELOPER" : "JARVIS · \(selectedModel.uppercased())")
+                Text(user ? "DEVELOPER" : "JARVIS · \(jarvis.selectedModel.uppercased())")
                     .font(.system(size: 9.5, weight: .bold, design: .monospaced)).kerning(1.2)
                     .foregroundStyle(user ? OLED.cyan : OLED.accent)
                 Spacer()

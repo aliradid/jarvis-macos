@@ -6,11 +6,9 @@ struct JarvisHome: View {
     @EnvironmentObject var inbox: InboxStore
     @EnvironmentObject var jarvis: JarvisStore
     @StateObject private var subscriptions = SubscriptionStore()
-    @StateObject private var cats = CatStore()
     @State private var selectedSubscription: String?
     @State private var pendingSubscription: String?
     @State private var subscriptionQuery = ""
-    @StateObject private var youtube = YouTubeMonitorStore()
     @StateObject private var quotaStore = AIQuotaStore.shared
     @StateObject private var infrastructureStore = InfrastructureStore.shared
     @State private var query = ""
@@ -105,12 +103,6 @@ struct JarvisHome: View {
                         JarvisView(jarvis: jarvis, draft: $composerDraft, embedded: true).environmentObject(state)
                     } else if page == "Subscriptions" {
                         SubscriptionsPage(store: subscriptions, selectedID: selectedSubscription, initialQuery: subscriptionQuery, selectionConsumed: { selectedSubscription = nil })
-                    } else if page == "Cats" || page == "Expenses" {
-                        AIQuotasDashboardPage(quotaStore: quotaStore, infraStore: infrastructureStore)
-                            .padding(22).frame(maxWidth: 1280, maxHeight: .infinity, alignment: .topLeading)
-                    } else if page == "YouTube" || page == "Revenue" {
-                        DevEnvironmentPage(infraStore: infrastructureStore, jarvis: jarvis, state: state, openProject: { setupProject = $0 })
-                            .padding(22).frame(maxWidth: 1280, maxHeight: .infinity, alignment: .topLeading)
                     } else {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 16) {
@@ -165,8 +157,8 @@ struct JarvisHome: View {
         switch key {
         case "Overview": return "Command Center"
         case "Assistant": return "Ollama AI Assistant"
-        case "Quotas", "Cats", "Expenses": return "AI Quotas & Models"
-        case "Projects", "YouTube", "Revenue": return "Dev Environment & Ports"
+        case "Quotas": return "AI Quotas & Models"
+        case "Projects": return "Dev Environment & Ports"
         case "Shortcuts": return "Quick Launchers & Assets"
         case "Subscriptions": return "AI & Cloud Spend"
         default: return key

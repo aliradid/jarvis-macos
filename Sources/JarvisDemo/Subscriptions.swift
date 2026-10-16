@@ -89,9 +89,12 @@ struct SubscriptionsPage: View {
         GeometryReader { geometry in
             HStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 22) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "circle.hexagongrid.fill").foregroundStyle(OrbitAccent)
-                        Text("orbit").font(.system(size: 24, weight: .semibold, design: .rounded))
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 7) {
+                            Image(systemName: "creditcard.and.123").foregroundStyle(OrbitAccent)
+                            Text("SPEND LEDGER").font(.system(size: 11, weight: .bold, design: .monospaced)).kerning(1.2)
+                        }
+                        Text("AI & Cloud Stack").font(.system(size: 12, weight: .medium)).foregroundStyle(OrbitMutedText)
                     }.padding(.top, 8)
                     VStack(spacing: 5) {
                         nav("Overview", "square.grid.2x2")
@@ -103,7 +106,7 @@ struct SubscriptionsPage: View {
                     Spacer()
                     Label("Reminders in Messages", systemImage: "bell").font(.system(size: 11))
                     Label("Stored on this Mac", systemImage: "lock").font(.system(size: 11)).foregroundStyle(OrbitMutedText)
-                }.padding(14).frame(width: 165)
+                }.padding(14).frame(width: 175)
                 Divider()
                 if geometry.size.height < 620 {
                     ScrollView { dashboard(width: geometry.size.width).frame(height: 760) }
@@ -152,7 +155,7 @@ struct SubscriptionsPage: View {
     private func archive(_ item: OrbitSubscription) { var next = item; next.status = "Archived"; _ = store.save(next) }
     var header: some View {
         HStack {
-            VStack(alignment:.leading,spacing:5) { Text(refresh.formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased()).font(.system(size:10,weight:.medium)).tracking(1.4).foregroundStyle(OrbitMutedText); Text(section == "Overview" ? "Your subscriptions" : section).font(.system(size:26,weight:.semibold)) }
+            VStack(alignment:.leading,spacing:5) { Text(refresh.formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased()).font(.system(size:10,weight:.medium)).tracking(1.4).foregroundStyle(OrbitMutedText); Text(section == "Overview" ? "AI & Developer Subscriptions" : section).font(.system(size:26,weight:.semibold)) }
             Spacer()
             Button { editing=OrbitSubscription() } label: { Label("Add subscription",systemImage:"plus").padding(.horizontal,8).padding(.vertical,6) }.buttonStyle(OrbitPrimaryButton()).tint(OrbitAccent).foregroundStyle(.black).keyboardShortcut("n",modifiers:.command).disabled(!store.loaded || store.issue != nil)
         }
@@ -172,13 +175,42 @@ struct SubscriptionsPage: View {
             }.font(.system(size:11)).fixedSize(horizontal:false,vertical:true)
         }
     }
+    private let quickTemplates: [(String, Double, String)] = [
+        ("Claude Max 20x", 200.0, "Software"),
+        ("Claude Pro", 20.0, "Software"),
+        ("ChatGPT Pro", 200.0, "Software"),
+        ("Cursor Pro", 20.0, "Software"),
+        ("GitHub Copilot", 10.0, "Software"),
+        ("Vercel Pro", 20.0, "Cloud & storage")
+    ]
     var listPanel: some View {
         VStack(alignment:.leading,spacing:12) {
             HStack { Text("\(rows.count) \(rows.count == 1 ? "record" : "records")").font(.system(size:13,weight:.medium)); Spacer(); Picker("Sort",selection:$sort) { ForEach(["Highest cost","Next date","Name","Category"],id:\.self) { Text($0) } }.frame(width:150) }
             if sort == "Highest cost" { Text("Highest monthly cost first · USD + MAD monthly equivalents · unknown costs last").font(.system(size:11)).foregroundStyle(OrbitMutedText) }
             HStack { Image(systemName:"magnifyingglass").foregroundStyle(OrbitMutedText); TextField("Search services, accounts or notes",text:$search).textFieldStyle(.plain).focused($searchFocused); if !search.isEmpty { Button {search=""} label:{Image(systemName:"xmark.circle.fill")}.buttonStyle(JarvisPlainButtonStyle()).accessibilityLabel("Clear search") } }.padding(10).background(OrbitSurface,in:RoundedRectangle(cornerRadius:9))
             if rows.isEmpty {
-                VStack(spacing:14) { Image(systemName:"square.stack.3d.up").font(.system(size:30)).foregroundStyle(OrbitAccent); Text(search.isEmpty ? "No records in this view" : "No matching subscriptions").font(.headline); Text(search.isEmpty ? "Add a subscription or choose another view." : "Try a service name, currency or account email.").font(.system(size:12)).foregroundStyle(OrbitMutedText) }.frame(maxWidth:.infinity,maxHeight:.infinity)
+                VStack(spacing:16) {
+                    Image(systemName:"creditcard.and.123").font(.system(size:30)).foregroundStyle(OrbitAccent)
+                    Text(search.isEmpty ? "No subscriptions tracked yet" : "No matching subscriptions").font(.headline)
+                    Text(search.isEmpty ? "Quick-add a common AI or developer subscription below, or click Add subscription:" : "Try a service name, currency or category.").font(.system(size:12)).foregroundStyle(OrbitMutedText)
+                    if search.isEmpty && section == "Overview" {
+                        HStack(spacing: 8) {
+                            ForEach(quickTemplates, id: \.0) { tpl in
+                                Button {
+                                    var item = OrbitSubscription(name: tpl.0, amount: tpl.1, currency: "USD", cycle: "Monthly", date: Date(), category: tpl.2, status: "Active")
+                                    item.priceKnown = true; item.dateKnown = true; item.dateBasis = "Confirmed"; item.priceBasis = "Confirmed"
+                                    editing = item
+                                } label: {
+                                    Text("+ \(tpl.0) ($\(Int(tpl.1)))")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .padding(.horizontal, 10).padding(.vertical, 6)
+                                        .background(OrbitAccent.opacity(0.16), in: Capsule())
+                                        .foregroundStyle(OrbitAccent)
+                                }.buttonStyle(JarvisPlainButtonStyle())
+                            }
+                        }
+                    }
+                }.frame(maxWidth:.infinity,maxHeight:.infinity)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView { LazyVStack(spacing:0) { Color.clear.frame(height:0).id("top"); ForEach(rows) { s in

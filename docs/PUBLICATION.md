@@ -1,27 +1,30 @@
-# Publication boundaries
+# Publication Boundaries
 
-This repository was assembled as a separate public edition from explicitly selected source files. It starts with fresh history and does not contain the personal application's repository history.
+This repository contains the public open-source edition of **Jarvis for macOS**, a native SwiftUI & AppKit AI & Developer Command Center.
 
 ## Included
 
-- Reviewed model, storage and transliteration components.
-- The original SwiftUI views with fictional fixtures and disconnected integration adapters.
-- Explicitly approved provider and plan names, stripped of account, store, domain, person and channel/community identifiers.
-- Behavioral tests and documentation.
-- PNG images rendered directly from the public demo views, apart from the subscriptions and cat expenses screenshots, which are deliberately published window captures of the personal app.
+- Full native macOS source code for the 5-pillar Command Center, Floating HUD (`⌥⌘J`), Menu Bar controller, Darwin kernel telemetry, BSD socket localhost port scanner, local Ollama streaming client, and AI & Cloud Spend tracker.
+- Local OAuth quota readers (`AIQuotaReaders.swift`) that read the current user's own macOS Keychain / `.claude` / `.codex` session state at runtime without any hardcoded tokens or personal identifiers.
+- Deterministic developer & AI stack fixtures (`SampleData.swift`) used when running `--demo`, `--check`, or `--render`.
+- Automated regression tests (`Tests/JarvisDemoTests/CoreTests.swift`), domain invariant checks (`Sources/JarvisDemo/DemoChecks.swift`), and publication boundary checks (`scripts/check_publication.py`).
+- High-resolution showcase screenshots in `docs/images/` rendered directly from the deterministic `--render` pipeline with PNG metadata stripped.
 
 ## Excluded
 
-- Credentials, authentication adapters, cookies and session material.
-- Personal configuration, account identifiers and billing records.
-- Infrastructure addresses, service configuration and private workspace paths.
-- Operational logs, private datasets, original app binaries and old build bundles.
-- Recordings of the personal application's live state, and screenshots of it other than the two reviewed subscriptions and cat expenses images.
+- Personal credentials, API keys, cookies, or OAuth tokens.
+- Personal filesystem paths (`/Users/<name>`), private IP addresses, or private repository URLs.
+- Unrelated legacy personal trackers or personal billing records.
 
-## Releasing changes
+## Verification Before Release
 
-Run `python3 scripts/check_publication.py` and `bash scripts/test-core.sh` before publishing. The publication check uses an exact file allowlist, rejects symlinks and checks text for common secret and personal-data patterns. Its findings report file locations and rule names without printing matching values.
+Always run the full verification suite before tagging a release:
 
-An allowlist or a pattern scan cannot prove that all sensitive information is absent. Review every new file and image manually. Do not add real configuration or credentials to make this demo functional; use synthetic fixtures.
+```sh
+python3 scripts/check_publication.py
+bash scripts/test-core.sh
+swift run JarvisDemo --check
+swift run JarvisDemo --render docs/images
+```
 
-The render command creates images from known fictional views rather than capturing the desktop. Review regenerated images before committing them. A capture of the personal app is published only after deciding, for that specific image, that every visible record can be public; strip its PNG metadata so the publication check passes.
+`scripts/check_publication.py` enforces an exact file allowlist, rejects symlinks, verifies PNG chunk hygiene, and scans all tracked text files for secret patterns, email addresses, personal home paths, and non-loopback IPv4 addresses.

@@ -94,14 +94,13 @@ struct DemoEntry {
                 let renders: [(String, AnyView, NSSize)] = [
                     ("overview", AnyView(DemoDashboard(page: "Overview")), NSSize(width: 1180, height: 900)),
                     ("assistant", AnyView(DemoDashboard(page: "Assistant")), NSSize(width: 1180, height: 900)),
+                    ("quotas", AnyView(DemoDashboard(page: "Quotas")), NSSize(width: 1180, height: 900)),
                     ("projects", AnyView(DemoDashboard(page: "Projects")), NSSize(width: 1180, height: 900)),
                     ("shortcuts", AnyView(DemoDashboard(page: "Shortcuts")), NSSize(width: 1180, height: 900)),
                     ("subscriptions", AnyView(DemoDashboard(page: "Subscriptions")), NSSize(width: 1180, height: 900)),
-                    ("floating-widget", AnyView(DemoFloatingBar()), NSSize(width: 680, height: 58)),
-                    ("widget-details", AnyView(AIQuotaPanel(store: AIQuotaStore.shared).background(OLED.canvas).foregroundStyle(OLED.text).preferredColorScheme(.dark)), NSSize(width: 540, height: 340)),
-                    ("cats", AnyView(DemoDashboard(page: "Quotas")), NSSize(width: 1180, height: 900)),
-                    ("youtube", AnyView(DemoDashboard(page: "Projects")), NSSize(width: 1180, height: 900)),
-                    ("revenue", AnyView(InfrastructurePanel(store: InfrastructureStore.shared).background(OLED.canvas).foregroundStyle(OLED.text).preferredColorScheme(.dark)), NSSize(width: 640, height: 490))
+                    ("floating-widget", AnyView(DemoFloatingBar().frame(width: 554, height: 58).background(OLED.canvas)), NSSize(width: 554, height: 58)),
+                    ("widget-details", AnyView(AIQuotaPanel(store: AIQuotaStore.shared).frame(width: 540, height: 292).background(OLED.canvas).foregroundStyle(OLED.text).preferredColorScheme(.dark)), NSSize(width: 540, height: 292)),
+                    ("telemetry", AnyView(InfrastructurePanel(store: InfrastructureStore.shared).frame(width: 640, height: 490).background(OLED.canvas).foregroundStyle(OLED.text).preferredColorScheme(.dark)), NSSize(width: 640, height: 490))
                 ]
                 for (page, content, size) in renders {
                     _ = NSApplication.shared

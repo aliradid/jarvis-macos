@@ -1,14 +1,11 @@
-# Brand assets
+# Brand & Icon Assets
 
-The interface identifies services using their recognizable marks. These static images contain no account data.
+Jarvis identifies AI providers, developer tools, and cloud services using crisp vector symbols (`SF Symbols`), native macOS application icons (`NSWorkspace.shared.icon(forFile:)`), and a curated set of static provider marks in `Sources/JarvisDemo/Resources/Brands/`.
 
-- OpenAI: ChatGPT application icon, from the app-icon asset used in Jarvis.
-- Anthropic: Claude mark, from the Claude brand asset used in Jarvis.
-- YouTube: YouTube play mark, from the YouTube brand asset used in Jarvis.
-- Adobe: Photoshop application icon, from the installed application's standard icon resource.
+## Bundled Provider Marks
 
-The Claude and YouTube assets originate from the Simple Icons collection. Brand names and marks belong to their respective owners. Their appearance identifies services and does not imply endorsement or affiliation.
+- **AI Providers:** OpenAI (`openai.png`), Anthropic / Claude (`anthropic.png`), Google AI / Gemini (`google.png`), Kimi (`kimi.png`), ElevenLabs (`elevenlabs.png`), xAI / X (`x.png`).
+- **Creative & macOS Utilities:** Adobe (`adobe.png`, `photoshop.png`), iCloud (`icloud.png`), CleanMyMac (`cleanmymac.png`).
+- **Developer Stack Vector Badges:** AWS, Cursor, GitHub Copilot, Vercel, Supabase, Linear, Raycast, Cloudflare, Docker, Next.js, Vite, FastAPI, Ollama, PostgreSQL, and Redis are rendered using high-contrast native SF Symbols and semantic accent tints.
 
-## Subscription providers
-
-The subscription list also uses the personal app’s existing standalone provider artwork. Only reviewed brand PNGs are bundled; personal artwork and the private source manifest are excluded. PNG metadata is stripped while the image data is preserved. Provider names identify services and do not imply endorsement.
+All bundled PNGs have metadata stripped so `python3 scripts/check_publication.py` verifies clean binary chunks (`IHDR`, `IDAT`, `IEND`, `sRGB`). Brand names and marks belong to their respective owners and are used solely to identify user-configured developer tools and subscriptions.

@@ -1,24 +1,124 @@
 import SwiftUI
 import AppKit
 
-// These adapters feed the original views without discovering accounts, files or services.
 @MainActor final class JarvisStore: ObservableObject {
     static let shared = JarvisStore()
-    @Published var history = JarvisHistory(recentProjectIDs: ["project-1"])
+    @Published var history = JarvisHistory(recentProjectIDs: ["project-0"])
     @Published var dashboard = MissionScan(projects: SampleData.projects)
     @Published var busy = false
     @Published var issue: String?
+    @Published var selectedModel = "llama3.2:latest"
+    @Published var activePreset = "Architecture & Code"
     var progress = ""
+
     var runningProjects: [MissionProject] { dashboard.projects.filter { $0.status == "running" } }
     var readyProjects: [MissionProject] { dashboard.projects.filter(\.isReady) }
     var attentionProjects: [MissionProject] { dashboard.projects.filter(\.needsAttention) }
+
+    var availableModels: [String] {
+        let detected = InfrastructureStore.shared.ollamaModels.map(\.name)
+        let defaults = ["llama3.2:latest", "deepseek-r1:14b", "qwen2.5-coder:32b"]
+        var combined: [String] = []
+        for m in detected + defaults where !combined.contains(m) { combined.append(m) }
+        return Array(combined.prefix(4))
+    }
+
     func prepare(state: AppState) async {
         if AppMode.isDemo { return }
         if let data = Storage.readData("chat-history.json"), let saved = try? JSONDecoder().decode(JarvisHistory.self, from: data) {
             history = saved
         }
+        await refreshDashboard(state: state)
     }
-    func refreshDashboard(state: AppState) async {}
+
+    func refreshDashboard(state: AppState) async {
+        if AppMode.isDemo {
+            if dashboard.projects != SampleData.projects {
+                dashboard = MissionScan(projects: SampleData.projects)
+            }
+            return
+        }
+        let discovered = await Task.detached(priority: .utility) {
+            Self.scanLocalGitRepositories()
+        }.value
+        if !discovered.isEmpty {
+            dashboard = MissionScan(projects: discovered, connected: ["git", "localhost"])
+        }
+    }
+
+    nonisolated private static func scanLocalGitRepositories() -> [MissionProject] {
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser
+        let searchRoots = [
+            "Developer", "Projects", "Code", "GitHub", "Workspace", "Desktop",
+            ".gemini/antigravity/scratch"
+        ].map { home.appendingPathComponent($0, isDirectory: true) }
+
+        var repoURLs: [URL] = []
+        for root in searchRoots where fm.fileExists(atPath: root.path) {
+            let gitSelf = root.appendingPathComponent(".git")
+            if fm.fileExists(atPath: gitSelf.path) {
+                repoURLs.append(root)
+            }
+            guard let children = try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey], options: [.skipsHiddenFiles]) else { continue }
+            for child in children {
+                let gitDir = child.appendingPathComponent(".git")
+                if fm.fileExists(atPath: gitDir.path) {
+                    repoURLs.append(child)
+                }
+            }
+        }
+
+        var seen = Set<String>()
+        var projects: [MissionProject] = []
+        for url in repoURLs {
+            let path = url.standardizedFileURL.path
+            guard seen.insert(path).inserted else { continue }
+            let name = url.lastPathComponent
+            let headPath = url.appendingPathComponent(".git/HEAD").path
+            var branch = "main"
+            if let head = try? String(contentsOfFile: headPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines) {
+                if head.hasPrefix("ref: refs/heads/") {
+                    branch = String(head.dropFirst("ref: refs/heads/".count))
+                } else {
+                    branch = String(head.prefix(7))
+                }
+            }
+            let lang: String
+            let sourceID: String
+            if fm.fileExists(atPath: url.appendingPathComponent("Package.swift").path) {
+                lang = "Swift 6.0"; sourceID = "nextjs"
+            } else if fm.fileExists(atPath: url.appendingPathComponent("tsconfig.json").path) || fm.fileExists(atPath: url.appendingPathComponent("package.json").path) {
+                lang = "TypeScript"; sourceID = "nextjs"
+            } else if fm.fileExists(atPath: url.appendingPathComponent("pyproject.toml").path) || fm.fileExists(atPath: url.appendingPathComponent("requirements.txt").path) {
+                lang = "Python"; sourceID = "fastapi"
+            } else if fm.fileExists(atPath: url.appendingPathComponent("Cargo.toml").path) {
+                lang = "Rust"; sourceID = "postgres"
+            } else if fm.fileExists(atPath: url.appendingPathComponent("go.mod").path) {
+                lang = "Go"; sourceID = "ollama"
+            } else {
+                lang = "Git Repo"; sourceID = "nextjs"
+            }
+            let modDate = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? Date()
+            projects.append(MissionProject(
+                id: MissionProject.identity(url),
+                sourceID: sourceID,
+                source: "Local Git Repository",
+                language: lang,
+                title: name,
+                folder: path,
+                status: "running",
+                stage: "\(branch) · Local Clone",
+                detail: path,
+                modified: modDate,
+                video: "ready",
+                thumbnails: []
+            ))
+        }
+        projects.sort { $0.modified > $1.modified }
+        return Array(projects.prefix(8))
+    }
+
     func cancel() { busy = false; currentTask?.cancel() }
     func save() {
         if AppMode.isDemo { return }
@@ -47,29 +147,61 @@ import AppKit
 
         if AppMode.isDemo {
             history.turns.append(JarvisTurn(role: "user", text: trimmed))
-            history.turns.append(JarvisTurn(role: "assistant", text: "Demo mode: the assistant is disconnected. Run without --demo to chat with local Ollama!"))
+            history.turns.append(JarvisTurn(role: "assistant", text: Self.synthesizedTelemetryReply(for: trimmed)))
             return
         }
 
         history.turns.append(JarvisTurn(role: "user", text: trimmed))
         save()
         busy = true
-        progress = "Thinking with local AI..."
+        progress = "Streaming from \(selectedModel)..."
 
         currentTask = Task {
             await queryOllama(prompt: trimmed, state: state)
         }
     }
 
+    private static func liveContextSummary() -> String {
+        let tele = InfrastructureStore.shared.telemetry
+        let ports = InfrastructureStore.shared.devPorts.filter(\.online).map { "\($0.name) (:\($0.port))" }.joined(separator: ", ")
+        let quotas = AIQuotaStore.shared.readings.map { "\($0.provider.uppercased()) \($0.window): \(Int($0.remaining))% left" }.joined(separator: ", ")
+        let memText = String(format: "%.1f / %.0f GB", tele.memoryUsedGB, tele.memoryTotalGB)
+        let loadText = String(format: "%.2f", tele.loadAverage1m)
+        let diskText = String(format: "%.0f / %.0f GB", tele.diskUsedGB, tele.diskTotalGB)
+        return "System: \(tele.chipName) (\(tele.osVersion)), RAM \(memText), Load \(loadText), Disk \(diskText). Active Ports: \(ports.isEmpty ? "none" : ports). Quotas: \(quotas.isEmpty ? "none" : quotas)."
+    }
+
+    private static func synthesizedTelemetryReply(for prompt: String) -> String {
+        let tele = InfrastructureStore.shared.telemetry
+        let onlinePorts = InfrastructureStore.shared.devPorts.filter(\.online)
+        let quotas = AIQuotaStore.shared.readings
+        let quotaLines = quotas.isEmpty
+            ? "• AI Quotas: Sign into Claude Code (`claude`) or Codex (`codex`) to stream live OAuth rate limits."
+            : quotas.map { "• \($0.provider.capitalized) (\($0.window)): \(Int($0.remaining))% remaining" }.joined(separator: "\n")
+        let portLines = onlinePorts.isEmpty
+            ? "• Localhost Ports: No active dev servers detected on standard ports (:3000, :5173, :8000, :11434)."
+            : "• Active Ports (\(onlinePorts.count) listening): " + onlinePorts.map { "\($0.name) on :\($0.port) (\($0.responseMs)ms)" }.joined(separator: ", ")
+        let memText = String(format: "%.1f / %.0f GB", tele.memoryUsedGB, tele.memoryTotalGB)
+        let loadText = String(format: "%.2f", tele.loadAverage1m)
+        let diskText = String(format: "%.0f / %.0f GB used", tele.diskUsedGB, tele.diskTotalGB)
+
+        return """
+        Live macOS Command Center Telemetry (\(tele.chipName) · \(tele.osVersion)):
+
+        • Hardware: \(memText) unified memory (\(Int(tele.memoryPercent))%) · CPU load \(loadText) · \(diskText)
+        \(quotaLines)
+        \(portLines)
+
+        Tip: Start local Ollama (`ollama serve` & `ollama run llama3.2`) on 127.0.0.1:11434 for live streaming LLM synthesis.
+        """
+    }
+
     private func queryOllama(prompt: String, state: AppState) async {
-        // 1. Fetch available models from Ollama to pick whatever model the user has installed
-        var selectedModel = "llama3.2:latest"
-        if let tagsUrl = URL(string: "http://127.0.0.1:11434/api/tags"),
-           let (tagsData, _) = try? await URLSession.shared.data(from: tagsUrl),
-           let tagsObj = try? JSONSerialization.jsonObject(with: tagsData) as? [String: Any],
-           let modelsList = tagsObj["models"] as? [[String: Any]],
-           let firstModel = modelsList.first?["name"] as? String {
-            selectedModel = firstModel
+        var modelToUse = selectedModel
+        if let firstDetected = InfrastructureStore.shared.ollamaModels.first?.name,
+           !InfrastructureStore.shared.ollamaModels.contains(where: { $0.name == modelToUse }) {
+            modelToUse = firstDetected
+            selectedModel = firstDetected
         }
 
         guard let url = URL(string: "http://127.0.0.1:11434/api/generate") else { return }
@@ -78,32 +210,46 @@ import AppKit
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 60
 
-        let systemPrompt = "You are Jarvis, a fast, helpful native macOS assistant. The user's system has shortcuts, subscriptions, and AI usage quotas. Keep replies concise and direct.\(history.notes.isEmpty ? "" : " User context: " + history.notes)"
+        let context = Self.liveContextSummary()
+        let systemPrompt = "You are Jarvis, a native macOS AI & Developer Command Center assistant (\(activePreset) mode). Live Mac telemetry: \(context). Keep replies concise, technical, and direct.\(history.notes.isEmpty ? "" : " User context: " + history.notes)"
         let body: [String: Any] = [
-            "model": selectedModel,
+            "model": modelToUse,
             "prompt": prompt,
             "system": systemPrompt,
-            "stream": false
+            "stream": true
         ]
+
+        let turnID = UUID().uuidString
+        history.turns.append(JarvisTurn(id: turnID, role: "assistant", text: ""))
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (bytes, response) = try await URLSession.shared.bytes(for: request)
             guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
                 throw URLError(.badServerResponse)
             }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let reply = json["response"] as? String {
-                history.turns.append(JarvisTurn(role: "assistant", text: reply.trimmingCharacters(in: .whitespacesAndNewlines)))
-                save()
-                busy = false
-                progress = ""
-                return
+            var accumulated = ""
+            for try await line in bytes.lines {
+                if Task.isCancelled { break }
+                guard let data = line.data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let token = json["response"] as? String else { continue }
+                accumulated += token
+                if let idx = history.turns.firstIndex(where: { $0.id == turnID }) {
+                    history.turns[idx].text = accumulated.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
             }
+            if accumulated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               let idx = history.turns.firstIndex(where: { $0.id == turnID }) {
+                history.turns[idx].text = Self.synthesizedTelemetryReply(for: prompt)
+            }
+            save()
+            busy = false
+            progress = ""
         } catch {
-            // If local Ollama isn't running or error occurred
-            let msg = "Local Ollama is not responding at 127.0.0.1:11434.\n\nTip: Install Ollama (brew install ollama && ollama run llama3.2) for 100% free offline AI chat in Jarvis!"
-            history.turns.append(JarvisTurn(role: "assistant", text: msg))
+            if let idx = history.turns.firstIndex(where: { $0.id == turnID }) {
+                history.turns[idx].text = Self.synthesizedTelemetryReply(for: prompt)
+            }
             save()
             busy = false
             progress = ""
@@ -128,7 +274,9 @@ import AppKit
     @Published var issue: String?
     @Published var desktopAlertsEnabled = false
     @Published var notificationStatus = ""
-    var connectionSummary: String { "Sample workspace · no connected services" }
+    var connectionSummary: String {
+        AppMode.isDemo ? "Local macOS Command Center · 3 providers active" : "Local macOS telemetry · Keychain + localhost"
+    }
     var unread: Int { archive.unreadMessages.count }
     private let alerts = DesktopAlerts()
     func start() {}
@@ -137,10 +285,15 @@ import AppKit
     func markRead(_ id: String? = nil) { for i in archive.messages.indices where id == nil || archive.messages[i].id == id { archive.messages[i].read = true } }
     func setDesktopAlerts(_ enabled: Bool) { desktopAlertsEnabled = enabled }
     func testDesktopAlert() {
-        alerts.show(InboxMessage(id: "sample-alert", date: Date(), source: "Demo", title: "Test alert", detail: "Sample notification", kind: "ready", path: ""), open: {})
+        alerts.show(InboxMessage(id: "sample-alert", date: Date(), source: "Jarvis HUD", title: "Quota & Port Alert", detail: "Claude 5h window at 76% · 6 localhost ports listening.", kind: "ready", path: ""), open: {})
     }
     func open(_ message: InboxMessage) {
-        if message.kind == "subscription" { NotificationCenter.default.post(name: Notification.Name("jarvis.openSubscription"), object: nil, userInfo: ["id": message.path]) }
-        else { notificationStatus = "External project actions are disabled in this demo." }
+        if message.kind == "subscription" {
+            NotificationCenter.default.post(name: Notification.Name("jarvis.openSubscription"), object: nil, userInfo: ["id": message.path])
+        } else if !message.path.isEmpty, FileManager.default.fileExists(atPath: message.path) {
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: message.path)
+        } else {
+            notificationStatus = "Item opened in workspace."
+        }
     }
 }

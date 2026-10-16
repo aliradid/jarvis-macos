@@ -29,24 +29,62 @@ final class AppState: ObservableObject {
         if AppMode.isDemo { config = SampleData.workspace }
         else {
             Storage.ensureDirs()
+            let hasSaved = FileManager.default.fileExists(atPath: Storage.configURL.path)
             let loaded = Storage.loadRecovering()
             config = loaded.config; canSave = loaded.canSave; notice = loaded.notice
+            if !hasSaved && config.links.isEmpty && config.files.isEmpty {
+                config = Self.defaultRealWorkspace()
+                _ = Storage.saveConfig(config)
+            }
         }
         reload()
     }
 
-    /// Chrome profiles found in Chrome's own profile list (read-only; nothing else is touched).
+    private static func defaultRealWorkspace() -> Config {
+        var c = Config()
+        for source in SampleData.sources {
+            c.links.append(LinkEntry(id: source.id, url: "http://127.0.0.1:\(source.port)"))
+            c = renamed(c, id: "link:" + source.id, label: source.name)
+        }
+        let appCandidates = [
+            ("cursor", "/Applications/Cursor.app", "Cursor AI IDE"),
+            ("vscode", "/Applications/Visual Studio Code.app", "VS Code"),
+            ("xcode", "/Applications/Xcode.app", "Xcode"),
+            ("ghostty", "/Applications/Ghostty.app", "Ghostty"),
+            ("iterm", "/Applications/iTerm.app", "iTerm2"),
+            ("warp", "/Applications/Warp.app", "Warp Terminal"),
+            ("orbstack", "/Applications/OrbStack.app", "OrbStack"),
+            ("docker", "/Applications/Docker.app", "Docker Desktop"),
+            ("terminal", "/System/Applications/Utilities/Terminal.app", "macOS Terminal")
+        ]
+        for app in appCandidates where FileManager.default.fileExists(atPath: app.1) {
+            let entry = FileEntry(id: app.0, path: app.1)
+            c.files.append(entry)
+            c = renamed(c, id: "file:" + entry.id, label: app.2)
+        }
+        return c
+    }
+
+    /// Chrome profiles + standard AI/Dev consoles found on this Mac (read-only; nothing else is touched).
     private static func detectChromeProfiles() -> [Tile] {
+        var tiles: [Tile] = [
+            Tile(id: "dev:github", kind: .link, label: "GitHub PRs", detectedLabel: "GitHub", subtitle: "Pull requests & CI", invocation: .openURL(url: "https://github.com"), customImage: nil, iconSourcePath: nil),
+            Tile(id: "dev:claude", kind: .link, label: "Claude Console", detectedLabel: "Claude", subtitle: "Anthropic workbench", invocation: .openURL(url: "https://claude.ai"), customImage: nil, iconSourcePath: nil),
+            Tile(id: "dev:openai", kind: .link, label: "OpenAI Platform", detectedLabel: "OpenAI", subtitle: "Codex & API logs", invocation: .openURL(url: "https://chatgpt.com"), customImage: nil, iconSourcePath: nil)
+        ]
         let state = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/Google/Chrome/Local State")
-        guard let data = try? Data(contentsOf: state),
-              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let cache = (root["profile"] as? [String: Any])?["info_cache"] as? [String: Any] else { return [] }
-        return cache.compactMap { dir, value -> Tile? in
-            guard let name = (value as? [String: Any])?["name"] as? String else { return nil }
-            return Tile(id: "chrome-profile:" + dir, kind: .chromeProfile, label: name, detectedLabel: name, subtitle: "Chrome profile",
-                        invocation: .openChromeProfile(dir: dir), customImage: nil, iconSourcePath: nil)
-        }.sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
+        if let data = try? Data(contentsOf: state),
+           let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let cache = (root["profile"] as? [String: Any])?["info_cache"] as? [String: Any] {
+            let profiles = cache.compactMap { dir, value -> Tile? in
+                guard let name = (value as? [String: Any])?["name"] as? String else { return nil }
+                return Tile(id: "chrome-profile:" + dir, kind: .chromeProfile, label: name, detectedLabel: name, subtitle: "Chrome profile",
+                            invocation: .openChromeProfile(dir: dir), customImage: nil, iconSourcePath: nil)
+            }.sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
+            tiles.append(contentsOf: profiles)
+        }
+        return tiles
     }
 
     var allTiles: [Tile] { workspaceTiles + browserTiles + fileTiles }

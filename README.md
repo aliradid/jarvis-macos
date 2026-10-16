@@ -65,7 +65,7 @@ Your real-time mission control: circular quota rings for **Claude Code Max 20x**
 - **Executable Action Pills:** Jarvis responses include interactive action buttons to launch Cursor AI, open localhost servers, or jump to GitHub PRs.
 
 ### 3. AI Quotas & Local Models (`Quotas`)
-![AI Quotas & Local GGUF Models](docs/images/cats.png)
+![AI Quotas & Local GGUF Models](docs/images/quotas.png)
 
 - **Deep-Dive Token Windows:** Track both the **5-Hour Sliding Session Window** and **7-Day Rolling Weekly Cap** for Claude Code alongside OpenAI Codex's primary weekly compute window.
 - **Installed GGUF Inventory:** Inspect every local Ollama model's architecture family, parameter count, quantization level (`Q4_K_M`, `F16`), Unified VRAM footprint, and warm/standby status.
@@ -94,7 +94,7 @@ Press **`⌥⌘J`** from any app or click the `sparkles` icon in the macOS menu 
 
 <p align="center">
   <img src="docs/images/widget-details.png" width="48%" alt="Live AI Quota Popover">
-  <img src="docs/images/revenue.png" width="48%" alt="System Telemetry & Local Runtime Popover">
+  <img src="docs/images/telemetry.png" width="48%" alt="System Telemetry & Local Runtime Popover">
 </p>
 
 ---

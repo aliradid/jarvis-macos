@@ -7,7 +7,7 @@ struct MissionSource: Identifiable, Codable, Hashable {
     let root: String
     let port: Int
     let primaryLanguage: String
-    static var installed: [MissionSource] { AppMode.isDemo ? SampleData.sources : [] }
+    static var installed: [MissionSource] { SampleData.sources }
 }
 
 struct MissionProject: Identifiable, Codable, Equatable {
@@ -46,10 +46,10 @@ struct ProjectSetupStep: Identifiable, Equatable {
 enum ProjectSetup {
     static func steps(_ project: MissionProject, sharedThumbnail: String? = nil, dashboardID: String? = nil) -> [ProjectSetupStep] {
         var result: [ProjectSetupStep] = []
-        if let video = project.video { result.append(ProjectSetupStep(kind: "file", title: "Finished video", path: video)) }
-        if let thumb = project.thumbnails.first ?? sharedThumbnail { result.append(ProjectSetupStep(kind: "file", title: project.thumbnails.isEmpty ? "Shared language thumbnail" : "Project thumbnail", path: thumb)) }
-        result.append(ProjectSetupStep(kind: "folder", title: "Project files", path: project.folder))
-        if let dashboardID { result.append(ProjectSetupStep(kind: "dashboard", title: "\(project.source) Mission Control", path: dashboardID)) }
+        if let artifact = project.video { result.append(ProjectSetupStep(kind: "file", title: "Latest build artifact", path: artifact)) }
+        if let spec = project.thumbnails.first ?? sharedThumbnail { result.append(ProjectSetupStep(kind: "file", title: "Architecture spec", path: spec)) }
+        result.append(ProjectSetupStep(kind: "folder", title: "Repository folder", path: project.folder))
+        if let dashboardID { result.append(ProjectSetupStep(kind: "dashboard", title: "\(project.source) Dev Server", path: dashboardID)) }
         return result
     }
 }

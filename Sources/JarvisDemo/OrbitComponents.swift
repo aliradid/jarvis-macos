@@ -217,7 +217,7 @@ func OrbitHigherMonthlyCost(_ a: OrbitSubscription, _ b: OrbitSubscription, rate
         do {
             let (data, _) = try await URLSession.shared.data(from: URL(string: "https://open.er-api.com/v6/latest/USD")!)
             let response = try JSONDecoder().decode(Response.self, from: data)
-            let day = ytDay(Date())
+            let day = isoDayString(Date())
             let fresh = OrbitCurrencies.filter { $0 != "USD" }.compactMap { code in
                 response.rates[code].map { OrbitFXRate(date: day, base: "USD", quote: code, rate: $0) }
             }
@@ -228,6 +228,18 @@ func OrbitHigherMonthlyCost(_ a: OrbitSubscription, _ b: OrbitSubscription, rate
     }
 }
 
+private let isoDayFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone(secondsFromGMT: 0)
+    f.dateFormat = "yyyy-MM-dd"
+    f.isLenient = false
+    return f
+}()
+
+func isoDayString(_ date: Date) -> String {
+    isoDayFormatter.string(from: date)
+}
 
 struct OrbitPrimaryButton: ButtonStyle {
     @Environment(\.isEnabled) private var enabled
@@ -238,53 +250,22 @@ struct OrbitPrimaryButton: ButtonStyle {
             .contentShape(Rectangle())
     }
 }
-// Local provider artwork; no network requests or subscription data leave the app.
+// Local AI & developer provider artwork; no network requests or subscription data leave the app.
 let OrbitBrandNames: [(String,String)] = [
     ("chatgpt","openai"),
     ("openai","openai"),
     ("codex","openai"),
     ("claude","anthropic"),
     ("anthropic","anthropic"),
-    ("youtube","youtube"),
     ("adobe","adobe"),
-    ("amazon prime","amazon"),
-    ("apple music","applemusic"),
-    ("bevel","bevel"),
-    ("canva","canva"),
-    ("capcut","capcut"),
     ("cleanmymac","cleanmymac"),
-    ("datacamp","datacamp"),
     ("elevenlabs","elevenlabs"),
-    ("godaddy","godaddy"),
-    ("hiface","hiface"),
-    ("hypeproxy","hypeproxy"),
     ("icloud","icloud"),
-    ("iproyal","iproyal"),
     ("kimi","kimi"),
-    ("kindle","kindle"),
-    ("muzz","muzz"),
-    ("netflix","netflix"),
-    ("nexlev","nexlev"),
-    ("nindohost","nindohost"),
-    ("nindomail","nindomail"),
-    ("nodemaven","nodemaven"),
-    ("opal","opal"),
-    ("orange","orange"),
-    ("petrosky","petrosky"),
-    ("shopify","shopify"),
-    ("skool","skool"),
-    ("spotify","spotify"),
-    ("surfshark","surfshark"),
-    ("swimsuccess","swimsuccess"),
-    ("tapo","tapo"),
-    ("whoop","whoop"),
-    ("zwift","zwift"),
-    ("cfg bank","cfg"),
     ("google ai","google"),
     ("gemini","google"),
-    ("chess.com","chess"),
     ("x premium","x"),
-    ("personality.co","personality"),
+    ("xai","x"),
 ]
 func OrbitBrandKey(_ name: String) -> String? {
     let normalized = name.trimmingCharacters(in:.whitespacesAndNewlines).lowercased()

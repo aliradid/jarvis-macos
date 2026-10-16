@@ -18,11 +18,11 @@ struct InboxPanel: View {
                 Button { Task { await inbox.refresh() } } label: { Image(systemName: "arrow.clockwise") }.accessibilityLabel("Refresh messages")
             }
             HStack {
-                Toggle("Launchpad desktop alerts", isOn: Binding(get: { inbox.desktopAlertsEnabled }, set: { inbox.setDesktopAlerts($0) })).font(.callout)
+                Toggle("Jarvis desktop banners", isOn: Binding(get: { inbox.desktopAlertsEnabled }, set: { inbox.setDesktopAlerts($0) })).font(.callout)
                 Spacer()
                 Button("Test alert") { inbox.testDesktopAlert() }
             }
-            Text("These are Launchpad’s own banners. Native Notification Center alerts are unavailable in this locally signed build.").font(.caption2).foregroundStyle(OLED.muted)
+            Text("Floating HUD alerts for AI quota thresholds, localhost port drops, and subscription renewals.").font(.caption2).foregroundStyle(OLED.muted)
             if !inbox.notificationStatus.isEmpty { Text(inbox.notificationStatus).font(.caption).foregroundStyle(OLED.offline) }
             if let issue = inbox.issue { Text(issue).font(.caption).foregroundStyle(OLED.offline).textSelection(.enabled) }
             Divider()
@@ -31,7 +31,7 @@ struct InboxPanel: View {
                     VStack(spacing: 10) {
                         Image(systemName: "bell.badge").font(.system(size: 28)).foregroundStyle(OLED.accent)
                         Text("You’re all caught up").font(.headline)
-                        Text("New finished videos, subscription reminders, pipeline failures and requests for review will appear here.").multilineTextAlignment(.center).foregroundStyle(OLED.muted)
+                        Text("AI quota reset alerts, localhost port changes, and subscription renewal reminders will appear here.").multilineTextAlignment(.center).foregroundStyle(OLED.muted)
                     }.frame(maxWidth: .infinity).padding(.vertical, 60)
                 } else {
                     LazyVStack(spacing: 10) {
@@ -47,7 +47,7 @@ struct InboxPanel: View {
                                     .font(.headline).foregroundStyle(message.kind == "ready" ? OLED.online : OLED.offline)
                                 Text(message.detail).font(.callout).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                                 HStack {
-                                    Button(message.kind == "subscription" ? "Open subscription" : message.kind == "ready" ? "Open video" : "Open project folder") { inbox.open(message) }
+                                    Button(message.kind == "subscription" ? "Open subscription" : "Open in Workspace") { inbox.open(message) }
                                     Spacer()
                                     if !message.read { Button("Mark read") { inbox.markRead(message.id) } }
                                 }.font(.caption)
@@ -57,7 +57,7 @@ struct InboxPanel: View {
                     }
                 }
             }.frame(height: 340)
-            Text("Read messages leave this list. Launchpad keeps watching while hidden; new updates appear here.")
+            Text("Read messages leave this list. Jarvis monitors quotas and ports in the background.")
                 .font(.caption2).foregroundStyle(OLED.muted)
         }.padding(18).frame(width: 420).background(OLED.canvas).foregroundStyle(OLED.text).tint(OLED.accent).preferredColorScheme(.dark)
     }
@@ -111,13 +111,13 @@ private struct DesktopAlertView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
-                Label("Launchpad · \(message.source)", systemImage: "bell.fill").font(.caption).foregroundStyle(OLED.accent)
+                Label("Jarvis · \(message.source)", systemImage: "bell.fill").font(.caption).foregroundStyle(OLED.accent)
                 Spacer()
                 Button(action: close) { Image(systemName: "xmark") }.buttonStyle(JarvisPlainButtonStyle()).accessibilityLabel("Dismiss alert")
             }
             Text(message.title).font(.headline)
             Text(message.detail).font(.callout).foregroundStyle(OLED.muted).lineLimit(2)
-            Button(message.kind == "test" ? "Dismiss test" : message.kind == "subscription" ? "Open subscription" : message.kind == "ready" ? "Open video" : "Open project folder", action: open)
+            Button(message.kind == "test" ? "Dismiss test" : message.kind == "subscription" ? "Open subscription" : "Open in Workspace", action: open)
                 .buttonStyle(JarvisPlainButtonStyle()).foregroundStyle(OLED.accent).font(.callout.weight(.semibold))
         }.padding(16).frame(width: 360, height: 150, alignment: .topLeading)
             .background(OLED.canvas, in: RoundedRectangle(cornerRadius: 16))
