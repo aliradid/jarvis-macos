@@ -60,29 +60,30 @@ Your real-time mission control: circular quota rings for **Claude Code Max 20x**
 ### 2. Local Ollama AI Assistant (`Assistant`)
 ![Jarvis Local Ollama AI Assistant](docs/images/assistant.png)
 
-- **Model Selector Bar:** Switch instantaneously between installed local models (`llama3.2:latest`, `deepseek-r1:14b`, `qwen2.5-coder:32b`) discovered via `http://127.0.0.1:11434/api/tags`.
-- **Mode Presets:** Tailor system instructions for *Architecture & Code*, *Quota & Burn Advisor*, or *Shell & DevOps*.
-- **Executable Action Pills:** Jarvis responses include interactive action buttons to launch Cursor AI, open localhost servers, or jump to GitHub PRs.
+- **Model Selector & Live Streaming:** Switch instantaneously between installed local models (`llama3.2:latest`, `deepseek-r1:14b`, `qwen2.5-coder:32b`) discovered via `http://127.0.0.1:11434/api/tags` with real-time token streaming.
+- **Interactive Telemetry Context Toggles:** Toggle live injection of **Quotas**, **Ports**, **Hardware**, and **Git Repos** into your local Ollama system prompt, or run instant slash commands (`/quotas`, `/ports`, `/hardware`, `/repos`, `/spend`, `/clear`).
+- **One-Click Copy & Markdown Export:** Copy any assistant turn or export the full transcript as Markdown (`Export MD`) in one click.
 
 ### 3. AI Quotas & Local Models (`Quotas`)
 ![AI Quotas & Local GGUF Models](docs/images/quotas.png)
 
-- **Deep-Dive Token Windows:** Track both the **5-Hour Sliding Session Window** and **7-Day Rolling Weekly Cap** for Claude Code alongside OpenAI Codex's primary weekly compute window.
-- **Installed GGUF Inventory:** Inspect every local Ollama model's architecture family, parameter count, quantization level (`Q4_K_M`, `F16`), Unified VRAM footprint, and warm/standby status.
+- **Deep-Dive Token Windows & Burn-Rate Advisor:** Track both the **5-Hour Sliding Session Window** and **7-Day Rolling Weekly Cap** for Claude Code alongside OpenAI Codex's primary weekly compute window, complete with projected window reset utilization and 1-click routing to local Ollama (`$0/tok`).
+- **Interactive GGUF Model Workbench:** Inspect every local Ollama model's architecture family, parameter count, quantization level (`Q4_K_M`, `F16`), and Unified VRAM footprint—with 1-click **`Use in Chat ↗`**, **`Copy CLI`**, and a **`Quick Pull GGUF`** bar.
 
 ### 4. Dev Environment, Localhost Ports & Quick Launchers (`Dev Env` & `Launchers`)
 ![Dev Environment & Localhost Ports](docs/images/projects.png)
 
-- **Non-Blocking TCP Port Scanner:** Automatically probes ports `3000`, `5173`, `8000`, `11434`, `5432`, `6379`, and `8080` on `127.0.0.1`, reporting sub-millisecond response times and one-click browser launch.
-- **Instant Keyboard Launchpad (`⌘1`–`⌘9`):** Launch IDEs, cloud consoles, local endpoints, and pinned architecture specs/model weights in a single keystroke.
+- **Non-Blocking TCP Port Scanner + `lsof` Process Inspector:** Automatically probes standard and custom ports (`+ Watch Port`) on `127.0.0.1`, displaying sub-millisecond ping latency, active process name & PID (`node · PID 48210`, `uvicorn · PID 51094`), **`Copy URL`**, **`Stop PID`** (`SIGTERM`), and **`Open`**.
+- **Auto-Discovered Git Worktrees & Repository Workbench:** Scans local developer directories (`~/Developer`, `~/Projects`, `~/Code`, `~/GitHub`) or lets you **`+ Pin Local Repo`**, with a 1-click Workbench to open in **Cursor**, **VS Code**, **Terminal**, or **Finder**.
+- **Global `⌘K` Command Palette & Launchpad (`⌘1`–`⌘9`):** Fuzzy-search across navigation pillars, system actions, listening localhost ports, Ollama models, and Git repositories from anywhere.
 
 ![Quick Launchers & Workspace Assets](docs/images/shortcuts.png)
 
 ### 5. AI & Cloud Spend (`Subscriptions`)
 ![AI & Cloud Spend Tracker](docs/images/subscriptions.png)
 
-- **Purpose-Built for Engineering Stacks:** Keep your recurring AI, IDE, and cloud infrastructure costs (`Claude Max`, `ChatGPT Pro`, `Cursor`, `Copilot`, `AWS`, `Vercel`, `Raycast`, `Linear`) organized in one local-first ledger.
-- **Multi-Currency Normalization:** Automatically converts `EUR`, `GBP`, `MAD`, and 10+ currencies into unified monthly and annual `USD` + `MAD` totals with 30-day renewal timelines.
+- **Purpose-Built for Engineering Stacks:** Keep your recurring AI, IDE, and cloud infrastructure costs (`Claude Max`, `ChatGPT Pro`, `Cursor`, `Copilot`, `AWS`, `Vercel`, `Raycast`, `Linear`) organized in one local-first ledger with 1-click **`Import JSON`** and **`Export JSON`** backups.
+- **Multi-Currency & Category Breakdown:** Automatically converts `EUR`, `GBP`, `MAD`, and 10+ currencies into unified monthly and annual `USD` + `MAD` totals with category allocation (`AI Models`, `Cloud`, `Tools`) and 30-day renewal timelines.
 
 ---
 
@@ -103,6 +104,7 @@ Press **`⌥⌘J`** from any app or click the `sparkles` icon in the macOS menu 
 
 | Shortcut | Action | Scope |
 | :--- | :--- | :--- |
+| `⌘K` | Open Global Command Palette (Fuzzy Search) | Main Window |
 | `⌥⌘J` | Toggle Floating HUD Pill | Global / Menu Bar |
 | `⌥⌘W` | Show & Focus Floating HUD | Application Menu |
 | `⌘1` – `⌘9` | Launch Pinned IDE / Console Tile | Command Center & Launchers |

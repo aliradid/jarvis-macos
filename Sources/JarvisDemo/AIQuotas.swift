@@ -220,11 +220,19 @@ struct AIQuotaPanel: View {
 struct AIQuotasDashboardPage: View {
     @ObservedObject var quotaStore: AIQuotaStore
     @ObservedObject var infraStore: InfrastructureStore
+    @EnvironmentObject var state: AppState
     @State private var selectedService: AIService?
+    @State private var customPullModel = ""
+
+    private let recommendedPullModels = ["qwen2.5-coder:7b", "deepseek-r1:14b", "codestral:22b", "llama3.3:70b"]
 
     var body: some View {
         let now = Date()
-        VStack(alignment: .leading, spacing: 20) {
+        let claudeSession = quotaStore.entries(.claude).first { AIQuotaReaders.matchesWindow($0.window, weekly: false) }
+        let sUsed = Int(claudeSession?.used ?? 24)
+        let projectedAtReset = min(100, Int(Double(sUsed) * 1.65))
+
+        VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("AI QUOTAS & LOCAL MODELS").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1.5).foregroundStyle(OLED.accent)
@@ -244,6 +252,47 @@ struct AIQuotasDashboardPage: View {
                     Label("Sync Quotas", systemImage: "arrow.clockwise").font(.system(size: 12, weight: .medium))
                 }.buttonStyle(JarvisControlStyle())
             }
+
+            // Token Burn-Rate Pace & Smart Routing Advisor Banner
+            HStack(spacing: 14) {
+                Image(systemName: sUsed > 75 ? "flame.fill" : "gauge.with.dots.needle.33percent")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(sUsed > 75 ? OLED.warning : OLED.online)
+                    .frame(width: 36, height: 36)
+                    .background(OLED.raised, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(sUsed > 75 ? "ELEVATED BURN PACE DETECTED" : "OPTIMAL TOKEN BURN PACE")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1.2)
+                            .foregroundStyle(sUsed > 75 ? OLED.warning : OLED.online)
+                        Text("Projected \(projectedAtReset)% at 5h window reset")
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(OLED.raised, in: Capsule())
+                            .foregroundStyle(OLED.muted)
+                    }
+                    Text("Offload unit test generation, boilerplate & repo indexing to local Ollama Metal GPU to preserve Claude Opus 4 & o3-pro burst quotas.")
+                        .font(.system(size: 11.5)).foregroundStyle(OLED.muted).lineLimit(1)
+                }
+                Spacer()
+                Button {
+                    JarvisStore.shared.selectedModel = "deepseek-r1:14b"
+                    state.notice = "Switched AI Assistant to local deepseek-r1:14b ($0 API cost)."
+                    NotificationCenter.default.post(name: Notification.Name("jarvis.focusComposer"), object: nil)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bolt.shield.fill").font(.system(size: 11))
+                        Text("Route Coding to Local R1 ($0)").font(.system(size: 11.5, weight: .semibold))
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 7)
+                    .background(OLED.accent.opacity(0.22), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(OLED.accent.opacity(0.55), lineWidth: 1))
+                    .foregroundStyle(OLED.text)
+                }.buttonStyle(JarvisPlainButtonStyle())
+            }
+            .padding(14)
+            .background(OLED.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(OLED.border, lineWidth: 1))
 
             // Top Row: Deep-Dive Quota Cards
             HStack(alignment: .top, spacing: 16) {
@@ -267,14 +316,15 @@ struct AIQuotasDashboardPage: View {
                         .background(OLED.raised, in: RoundedRectangle(cornerRadius: 7))
                 }
 
-                VStack(spacing: 8) {
+                VStack(spacing: 7) {
                     HStack {
                         Text("MODEL IDENTIFIER").frame(maxWidth: .infinity, alignment: .leading)
-                        Text("ARCHITECTURE").frame(width: 130, alignment: .leading)
-                        Text("PARAMETERS").frame(width: 100, alignment: .trailing)
-                        Text("QUANTIZATION").frame(width: 110, alignment: .trailing)
-                        Text("VRAM FOOTPRINT").frame(width: 120, alignment: .trailing)
-                        Text("STATUS").frame(width: 95, alignment: .trailing)
+                        Text("ARCHITECTURE").frame(width: 110, alignment: .leading)
+                        Text("PARAMS").frame(width: 75, alignment: .trailing)
+                        Text("QUANT").frame(width: 85, alignment: .trailing)
+                        Text("VRAM").frame(width: 85, alignment: .trailing)
+                        Text("STATUS").frame(width: 85, alignment: .trailing)
+                        Text("ACTIONS").frame(width: 170, alignment: .trailing)
                     }
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(OLED.muted)
@@ -297,37 +347,109 @@ struct AIQuotasDashboardPage: View {
                             Text(model.family)
                                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                                 .foregroundStyle(OLED.text)
-                                .frame(width: 130, alignment: .leading)
+                                .frame(width: 110, alignment: .leading)
 
                             Text(model.parameterSize)
                                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                                 .foregroundStyle(OLED.text)
-                                .frame(width: 100, alignment: .trailing)
+                                .frame(width: 75, alignment: .trailing)
 
                             Text(model.quantization)
                                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                                 .foregroundStyle(OLED.cyan)
-                                .frame(width: 110, alignment: .trailing)
+                                .frame(width: 85, alignment: .trailing)
 
                             Text(String(format: "%.1f GB", model.sizeGB))
                                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                                 .foregroundStyle(OLED.text)
-                                .frame(width: 120, alignment: .trailing)
+                                .frame(width: 85, alignment: .trailing)
 
                             HStack(spacing: 5) {
                                 Circle().fill(model.warm ? OLED.online : OLED.cyan).frame(width: 6, height: 6)
                                 Text(model.warm ? "Loaded" : "Standby")
                                     .font(.system(size: 11, weight: .semibold))
                                     .foregroundStyle(model.warm ? OLED.online : OLED.cyan)
-                            }.frame(width: 95, alignment: .trailing)
+                            }.frame(width: 85, alignment: .trailing)
+
+                            HStack(spacing: 6) {
+                                Button {
+                                    let cmd = "ollama run \(model.name)"
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(cmd, forType: .string)
+                                    state.notice = "Copied '\(cmd)' to clipboard."
+                                } label: {
+                                    Text("Copy CLI")
+                                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                        .padding(.horizontal, 7).padding(.vertical, 4)
+                                        .background(OLED.raised, in: RoundedRectangle(cornerRadius: 6))
+                                        .foregroundStyle(OLED.muted)
+                                }.buttonStyle(JarvisPlainButtonStyle())
+
+                                Button {
+                                    JarvisStore.shared.selectedModel = model.name
+                                    NotificationCenter.default.post(name: Notification.Name("jarvis.focusComposer"), object: nil)
+                                } label: {
+                                    Text("Use in Chat ↗")
+                                        .font(.system(size: 10.5, weight: .semibold))
+                                        .padding(.horizontal, 8).padding(.vertical, 4)
+                                        .background(OLED.accent.opacity(0.18), in: RoundedRectangle(cornerRadius: 6))
+                                        .foregroundStyle(OLED.accent)
+                                }.buttonStyle(JarvisPlainButtonStyle())
+                            }.frame(width: 170, alignment: .trailing)
                         }
-                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .padding(.horizontal, 14).padding(.vertical, 9)
                         .background(OLED.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(OLED.border, lineWidth: 1))
                     }
                 }
+
+                // Quick Pull / Run GGUF Bar
+                HStack(spacing: 8) {
+                    Label("QUICK PULL GGUF:", systemImage: "arrow.down.circle.fill")
+                        .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                        .foregroundStyle(OLED.cyan)
+                    ForEach(recommendedPullModels, id: \.self) { tag in
+                        Button {
+                            let cmd = "ollama pull \(tag)"
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(cmd, forType: .string)
+                            state.notice = "Copied '\(cmd)' to clipboard — paste in Terminal to pull."
+                        } label: {
+                            Text("+ \(tag)")
+                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(OLED.surface, in: Capsule())
+                                .overlay(Capsule().stroke(OLED.border, lineWidth: 1))
+                                .foregroundStyle(OLED.text)
+                        }.buttonStyle(JarvisPlainButtonStyle())
+                    }
+                    Spacer()
+                    HStack(spacing: 6) {
+                        TextField("ollama pull <model:tag>…", text: $customPullModel)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 11, design: .monospaced))
+                            .frame(width: 165)
+                        Button("Copy Pull Cmd") {
+                            let target = customPullModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "qwen2.5-coder:7b" : customPullModel.trimmingCharacters(in: .whitespacesAndNewlines)
+                            let cmd = "ollama pull \(target)"
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(cmd, forType: .string)
+                            customPullModel = ""
+                            state.notice = "Copied '\(cmd)' to clipboard."
+                        }
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .buttonStyle(JarvisPlainButtonStyle())
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(OLED.cyan.opacity(0.18), in: RoundedRectangle(cornerRadius: 6))
+                        .foregroundStyle(OLED.cyan)
+                    }
+                    .padding(.horizontal, 9).padding(.vertical, 4)
+                    .background(OLED.surface, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(OLED.border, lineWidth: 1))
+                }
+                .padding(.top, 4)
             }
-            .padding(18)
+            .padding(16)
             .background(OLED.surface.opacity(0.65), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(OLED.border, lineWidth: 1))
         }

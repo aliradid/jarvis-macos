@@ -21,6 +21,7 @@ struct JarvisHome: View {
     @State private var projects = false
     @State private var projectFilter = "All"
     @State private var setupProject: MissionProject?
+    @State private var showCommandPalette = false
     @FocusState private var searchFocused: Bool
     @Environment(\.scenePhase) private var scenePhase
 
@@ -49,7 +50,7 @@ struct JarvisHome: View {
             // Main Content Column
             VStack(spacing: 0) {
                 // Top Status & Search Bar
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     HStack(spacing: 8) {
                         Text("JARVIS").font(.system(size: 11, weight: .bold, design: .monospaced)).tracking(1.6).foregroundStyle(OLED.accent)
                         Text("/").foregroundStyle(OLED.muted)
@@ -67,9 +68,16 @@ struct JarvisHome: View {
                     }
                     .font(.system(size: 12))
                     .padding(.horizontal, 10).padding(.vertical, 7)
-                    .frame(width: 245)
+                    .frame(width: 215)
                     .background(OLED.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(OLED.border, lineWidth: 1))
+
+                    Button { showCommandPalette = true } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "command").font(.system(size: 10, weight: .bold))
+                            Text("⌘K").font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                        }.frame(height: 18)
+                    }.buttonStyle(JarvisControlStyle()).help("Open Command Palette (⌘K)").accessibilityLabel("Command Palette")
 
                     Button { diagnostics = true } label: {
                         Image(systemName: "waveform.path.ecg").frame(width: 30, height: 30)
@@ -83,6 +91,7 @@ struct JarvisHome: View {
                     }.buttonStyle(JarvisControlStyle()).accessibilityLabel("Messages")
 
                     Button { searchFocused = true } label: { EmptyView() }.keyboardShortcut("f").frame(width: 0).accessibilityHidden(true)
+                    Button { showCommandPalette.toggle() } label: { EmptyView() }.keyboardShortcut("k").frame(width: 0).accessibilityHidden(true)
                 }
                 .padding(.horizontal, 22).padding(.vertical, 10)
                 .background(OLED.canvas)
@@ -128,6 +137,17 @@ struct JarvisHome: View {
         }
         .frame(minWidth: 960, minHeight: 620)
         .background(OLED.canvas).foregroundStyle(OLED.text).tint(OLED.accent).preferredColorScheme(.dark)
+        .sheet(isPresented: $showCommandPalette) {
+            CommandPaletteSheet(
+                state: state,
+                jarvis: jarvis,
+                quotaStore: quotaStore,
+                infraStore: infrastructureStore,
+                navigate: { target in page = target },
+                openDiagnostics: { diagnostics = true },
+                openProject: { proj in setupProject = proj }
+            )
+        }
         .sheet(isPresented: $diagnostics) { DiagnosticsPanel() }
         .sheet(isPresented: $messages, onDismiss: {
             if let id = pendingSubscription { pendingSubscription = nil; selectedSubscription = id; subscriptionQuery = ""; page = "Subscriptions" }
@@ -393,6 +413,7 @@ struct DevEnvironmentPage: View {
     @ObservedObject var jarvis: JarvisStore
     let state: AppState
     let openProject: (MissionProject) -> Void
+    @State private var addingCustomPort = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -408,6 +429,10 @@ struct DevEnvironmentPage: View {
                     Text("\(onlinePorts)/\(infraStore.devPorts.count) Local Ports Listening").font(.system(size: 11, weight: .semibold, design: .monospaced)).foregroundStyle(OLED.online)
                 }.padding(.horizontal, 12).padding(.vertical, 6).background(OLED.surface, in: Capsule()).overlay(Capsule().stroke(OLED.border, lineWidth: 1))
 
+                Button { addingCustomPort = true } label: {
+                    Label("+ Watch Port", systemImage: "plus.circle.fill").font(.system(size: 12, weight: .medium))
+                }.buttonStyle(JarvisControlStyle())
+
                 Button { Task { await infraStore.refresh() } } label: {
                     Label("Scan Ports", systemImage: "arrow.clockwise").font(.system(size: 12, weight: .medium))
                 }.buttonStyle(JarvisControlStyle())
@@ -415,7 +440,7 @@ struct DevEnvironmentPage: View {
 
             // Summary KPI Strip
             HStack(spacing: 12) {
-                devSummaryTile(title: "LISTENING PORTS", value: "\(infraStore.devPorts.filter(\.online).count)", subtitle: "TCP IPv4 127.0.0.1 sockets", tint: OLED.online)
+                devSummaryTile(title: "LISTENING PORTS", value: "\(infraStore.devPorts.filter(\.online).count)", subtitle: "TCP IPv4 127.0.0.1 sockets + lsof PID", tint: OLED.online)
                 devSummaryTile(title: "ACTIVE GIT REPOS", value: "\(jarvis.dashboard.projects.count)", subtitle: "2 running · 1 ready · 1 PR review", tint: OLED.accent)
                 devSummaryTile(title: "CPU & UNIFIED RAM", value: String(format: "%.1f GB", infraStore.telemetry.memoryUsedGB), subtitle: "Load \(String(format: "%.2f", infraStore.telemetry.loadAverage1m)) on \(infraStore.telemetry.chipName)", tint: OLED.cyan)
                 devSummaryTile(title: "LOCAL LLM RUNTIME", value: ":11434", subtitle: "Ollama Metal GPU · 1ms ping", tint: OLED.online)
@@ -424,21 +449,30 @@ struct DevEnvironmentPage: View {
             // Listening Ports Table
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("AUTO-DETECTED LOCALHOST PORTS").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1.3).foregroundStyle(OLED.accent)
+                    Text("AUTO-DETECTED LOCALHOST PORTS & PROCESSES").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1.3).foregroundStyle(OLED.accent)
                     Spacer()
-                    Text("Probed via non-blocking Darwin BSD socket connect").font(.system(size: 10.5)).foregroundStyle(OLED.muted)
+                    Text("Probed via non-blocking Darwin BSD socket connect + lsof PID inspection").font(.system(size: 10.5)).foregroundStyle(OLED.muted)
                 }
 
                 VStack(spacing: 6) {
                     ForEach(infraStore.devPorts) { svc in
-                        HStack(spacing: 12) {
+                        HStack(spacing: 10) {
                             Image(systemName: svc.icon)
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(svc.online ? OLED.accent : OLED.muted)
                                 .frame(width: 30, height: 30)
                                 .background(OLED.raised, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(svc.name).font(.system(size: 13, weight: .semibold))
+                                HStack(spacing: 6) {
+                                    Text(svc.name).font(.system(size: 13, weight: .semibold))
+                                    if let badge = svc.processBadge {
+                                        Text(badge)
+                                            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                                            .foregroundStyle(OLED.cyan)
+                                            .padding(.horizontal, 6).padding(.vertical, 2)
+                                            .background(OLED.cyan.opacity(0.14), in: Capsule())
+                                    }
+                                }
                                 Text(svc.stack).font(.system(size: 11)).foregroundStyle(OLED.muted)
                             }
                             Spacer()
@@ -453,10 +487,50 @@ struct DevEnvironmentPage: View {
                                 Text(svc.online ? "ONLINE · \(svc.responseMs)ms" : "OFFLINE")
                                     .font(.system(size: 10.5, weight: .bold, design: .monospaced))
                                     .foregroundStyle(svc.online ? OLED.online : OLED.muted)
-                            }.frame(width: 115, alignment: .trailing)
+                            }.frame(width: 110, alignment: .trailing)
 
                             Button {
-                                if let tile = state.browserTiles.first(where: { $0.subtitle.contains(":\(svc.port)") }) {
+                                NSPasteboard.general.clearContents()
+                                NSPasteboard.general.setString(svc.url, forType: .string)
+                                state.notice = "Copied \(svc.url) to clipboard."
+                            } label: {
+                                Text("Copy URL")
+                                    .font(.system(size: 10.5, weight: .semibold))
+                                    .padding(.horizontal, 8).padding(.vertical, 5)
+                                    .background(OLED.raised, in: RoundedRectangle(cornerRadius: 7))
+                                    .foregroundStyle(OLED.muted)
+                            }.buttonStyle(JarvisPlainButtonStyle())
+
+                            if svc.online && svc.pid != nil {
+                                Button {
+                                    Task {
+                                        if await infraStore.stopProcess(for: svc) {
+                                            state.notice = "Sent SIGTERM to \(svc.processName ?? "process") (PID \(svc.pid ?? 0)) on :\(svc.port)."
+                                        }
+                                    }
+                                } label: {
+                                    Text("Stop PID")
+                                        .font(.system(size: 10.5, weight: .semibold))
+                                        .padding(.horizontal, 8).padding(.vertical, 5)
+                                        .background(OLED.offline.opacity(0.16), in: RoundedRectangle(cornerRadius: 7))
+                                        .foregroundStyle(OLED.offline)
+                                }.buttonStyle(JarvisPlainButtonStyle())
+                            } else if svc.isCustom {
+                                Button {
+                                    infraStore.removeCustomPort(port: svc.port)
+                                    state.notice = "Removed custom port :\(svc.port)."
+                                } label: {
+                                    Image(systemName: "trash").font(.system(size: 10.5))
+                                        .padding(.horizontal, 8).padding(.vertical, 5)
+                                        .background(OLED.raised, in: RoundedRectangle(cornerRadius: 7))
+                                        .foregroundStyle(OLED.muted)
+                                }.buttonStyle(JarvisPlainButtonStyle())
+                            }
+
+                            Button {
+                                if !AppMode.isDemo, let url = URL(string: svc.url) {
+                                    NSWorkspace.shared.open(url)
+                                } else if let tile = state.browserTiles.first(where: { $0.subtitle.contains(":\(svc.port)") }) {
                                     state.launch(tile)
                                 } else {
                                     state.notice = "Opened \(svc.url) in browser."
@@ -465,7 +539,8 @@ struct DevEnvironmentPage: View {
                                 Label("Open", systemImage: "arrow.up.right")
                                     .font(.system(size: 11, weight: .semibold))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
-                                    .background(OLED.raised, in: RoundedRectangle(cornerRadius: 7))
+                                    .background(OLED.accent.opacity(0.22), in: RoundedRectangle(cornerRadius: 7))
+                                    .foregroundStyle(OLED.text)
                             }.buttonStyle(JarvisPlainButtonStyle())
                         }
                         .padding(.horizontal, 12).padding(.vertical, 8)
@@ -483,6 +558,23 @@ struct DevEnvironmentPage: View {
                 HStack {
                     Text("ACTIVE GIT WORKTREES & REPOSITORIES").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1.3).foregroundStyle(OLED.cyan)
                     Spacer()
+                    Button {
+                        let panel = NSOpenPanel()
+                        panel.canChooseFiles = false
+                        panel.canChooseDirectories = true
+                        panel.allowsMultipleSelection = false
+                        panel.prompt = "Pin Repository"
+                        if panel.runModal() == .OK, let url = panel.url {
+                            jarvis.pinLocalRepository(url: url, state: state)
+                        }
+                    } label: {
+                        Label("+ Pin Local Repo", systemImage: "folder.badge.plus")
+                            .font(.system(size: 11, weight: .semibold))
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(OLED.surface, in: RoundedRectangle(cornerRadius: 7))
+                            .overlay(RoundedRectangle(cornerRadius: 7).stroke(OLED.border, lineWidth: 1))
+                            .foregroundStyle(OLED.cyan)
+                    }.buttonStyle(JarvisPlainButtonStyle())
                 }
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                     ForEach(jarvis.dashboard.projects) { project in
@@ -505,7 +597,7 @@ struct DevEnvironmentPage: View {
                                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                                     .foregroundStyle(OLED.text)
                                 Spacer()
-                                Button("Open IDE & Stack ↗") { openProject(project) }
+                                Button("Open Workbench ↗") { openProject(project) }
                                     .font(.system(size: 11, weight: .semibold))
                                     .foregroundStyle(OLED.accent)
                                     .buttonStyle(JarvisPlainButtonStyle())
@@ -517,6 +609,9 @@ struct DevEnvironmentPage: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $addingCustomPort) {
+            AddCustomPortSheet(infraStore: infraStore, state: state)
         }
     }
 
@@ -530,6 +625,205 @@ struct DevEnvironmentPage: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(OLED.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(OLED.border, lineWidth: 1))
+    }
+}
+
+private struct AddCustomPortSheet: View {
+    @ObservedObject var infraStore: InfrastructureStore
+    let state: AppState
+    @Environment(\.dismiss) private var dismiss
+    @State private var portText = "4000"
+    @State private var name = "GraphQL Gateway"
+    @State private var stack = "Node.js · Apollo / Yoga"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Watch Custom Localhost Port").font(.title3.bold())
+            Text("Monitor any custom TCP port on 127.0.0.1 alongside standard dev servers.").font(.callout).foregroundStyle(OLED.muted)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("TCP Port (1 – 65535)").font(.caption.weight(.semibold)).foregroundStyle(OLED.muted)
+                TextField("4000", text: $portText).textFieldStyle(.roundedBorder)
+                Text("Service Name").font(.caption.weight(.semibold)).foregroundStyle(OLED.muted)
+                TextField("GraphQL Gateway", text: $name).textFieldStyle(.roundedBorder)
+                Text("Stack / Runtime Subtitle").font(.caption.weight(.semibold)).foregroundStyle(OLED.muted)
+                TextField("Node.js · Apollo", text: $stack).textFieldStyle(.roundedBorder)
+            }
+            HStack {
+                Button("Cancel") { dismiss() }
+                Spacer()
+                Button("Watch Port") {
+                    if let p = Int(portText.trimmingCharacters(in: .whitespacesAndNewlines)), (1...65535).contains(p) {
+                        infraStore.addCustomPort(port: p, name: name, stack: stack)
+                        state.notice = "Added custom port :\(p) (\(name)) to localhost scanner."
+                        dismiss()
+                    }
+                }.buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(22).frame(width: 420).background(OLED.canvas).foregroundStyle(OLED.text).tint(OLED.accent).preferredColorScheme(.dark)
+    }
+}
+
+private struct CommandPaletteSheet: View {
+    let state: AppState
+    @ObservedObject var jarvis: JarvisStore
+    @ObservedObject var quotaStore: AIQuotaStore
+    @ObservedObject var infraStore: InfrastructureStore
+    let navigate: (String) -> Void
+    let openDiagnostics: () -> Void
+    let openProject: (MissionProject) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var category = "All"
+
+    struct PaletteCommand: Identifiable {
+        let id: String
+        let category: String
+        let title: String
+        let subtitle: String
+        let icon: String
+        let badge: String
+        let action: () -> Void
+    }
+
+    private var commands: [PaletteCommand] {
+        var list: [PaletteCommand] = [
+            PaletteCommand(id: "nav:overview", category: "Navigation", title: "Go to Command Center", subtitle: "Unified AI quotas, hardware telemetry & active localhost ports", icon: "square.grid.2x2.fill", badge: "Pillar 1", action: { navigate("Overview"); dismiss() }),
+            PaletteCommand(id: "nav:assistant", category: "Navigation", title: "Open Ollama AI Assistant", subtitle: "Streaming local Metal LLM chat & slash commands", icon: "sparkles.rectangle.stack.fill", badge: "Pillar 2", action: { navigate("Assistant"); dismiss() }),
+            PaletteCommand(id: "nav:quotas", category: "Navigation", title: "Inspect AI Quotas & Local Models", subtitle: "Claude 5h/7d, OpenAI Codex Pro & GGUF VRAM table", icon: "gauge.with.dots.needle.67percent", badge: "Pillar 3", action: { navigate("Quotas"); dismiss() }),
+            PaletteCommand(id: "nav:projects", category: "Navigation", title: "Open Dev Environment & Ports", subtitle: "Listening TCP sockets, lsof PIDs & Git worktrees", icon: "terminal.fill", badge: "Pillar 4", action: { navigate("Projects"); dismiss() }),
+            PaletteCommand(id: "nav:shortcuts", category: "Navigation", title: "Open Quick Launchers & Assets", subtitle: "Single-keystroke IDE launchers (⌘1–⌘9)", icon: "command.square.fill", badge: "Launchpad", action: { navigate("Shortcuts"); dismiss() }),
+            PaletteCommand(id: "nav:spend", category: "Navigation", title: "Open AI & Cloud Spend Ledger", subtitle: "Recurring developer stack cost tracker (USD + MAD)", icon: "creditcard.fill", badge: "Pillar 5", action: { navigate("Subscriptions"); dismiss() }),
+            PaletteCommand(id: "sys:sync", category: "Actions", title: "Sync AI Quotas & Scan Localhost Ports", subtitle: "Force refresh Keychain OAuth tokens & Darwin TCP sockets", icon: "arrow.clockwise.circle.fill", badge: "Action", action: {
+                Task { await quotaStore.refresh(force: true); await infraStore.refresh() }
+                state.notice = "Synced AI quotas and scanned localhost ports."
+                dismiss()
+            }),
+            PaletteCommand(id: "sys:hud", category: "Actions", title: "Toggle Floating HUD Pill", subtitle: "Show or hide the always-on-top compact telemetry pill", icon: "pip.fill", badge: "⌥⌘J", action: {
+                DemoWidgetController.shared.toggleWidget()
+                dismiss()
+            }),
+            PaletteCommand(id: "sys:diag", category: "Actions", title: "Open System Diagnostics & Event Journal", subtitle: "Inspect Darwin kernel checks and runtime logs", icon: "waveform.path.ecg", badge: "Health", action: {
+                dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { openDiagnostics() }
+            })
+        ]
+        for svc in infraStore.devPorts where svc.online {
+            list.append(PaletteCommand(
+                id: "port:\(svc.port)",
+                category: "Ports",
+                title: "Open \(svc.name) (:\(svc.port))",
+                subtitle: "\(svc.url) · \(svc.processBadge ?? svc.stack) · \(svc.responseMs)ms",
+                icon: svc.icon,
+                badge: ":\(svc.port)",
+                action: {
+                    if !AppMode.isDemo, let url = URL(string: svc.url) { NSWorkspace.shared.open(url) }
+                    else { state.notice = "Opened \(svc.url) in browser." }
+                    dismiss()
+                }
+            ))
+        }
+        for model in infraStore.ollamaModels {
+            list.append(PaletteCommand(
+                id: "model:\(model.name)",
+                category: "Models",
+                title: "Use \(model.name) in AI Assistant",
+                subtitle: "\(model.family) · \(model.parameterSize) · \(model.quantization) · \(String(format: "%.1f GB VRAM", model.sizeGB))",
+                icon: "cpu.fill",
+                badge: "$0/tok",
+                action: {
+                    jarvis.selectedModel = model.name
+                    navigate("Assistant")
+                    dismiss()
+                }
+            ))
+        }
+        for proj in jarvis.dashboard.projects {
+            list.append(PaletteCommand(
+                id: "repo:\(proj.id)",
+                category: "Repos",
+                title: "Workbench: \(proj.title)",
+                subtitle: "\(proj.language) · \(proj.stage) · \(proj.detail)",
+                icon: "folder.fill.badge.gearshape",
+                badge: proj.language,
+                action: {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { openProject(proj) }
+                }
+            ))
+        }
+        return list.filter { item in
+            (category == "All" || item.category == category) &&
+            (query.isEmpty || item.title.localizedCaseInsensitiveContains(query) || item.subtitle.localizedCaseInsensitiveContains(query) || item.badge.localizedCaseInsensitiveContains(query))
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: "command").foregroundStyle(OLED.accent).font(.system(size: 15, weight: .bold))
+                TextField("Type a command, port (:3000), model (deepseek-r1), or repository…", text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14, weight: .medium))
+                Spacer()
+                Button("ESC") { dismiss() }
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .buttonStyle(JarvisPlainButtonStyle())
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(OLED.raised, in: RoundedRectangle(cornerRadius: 5))
+                    .foregroundStyle(OLED.muted)
+            }
+            .padding(12)
+            .background(OLED.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(OLED.accent.opacity(0.45), lineWidth: 1))
+
+            HStack(spacing: 6) {
+                ForEach(["All", "Navigation", "Actions", "Ports", "Models", "Repos"], id: \.self) { cat in
+                    Button { category = cat } label: {
+                        Text(cat)
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .padding(.horizontal, 9).padding(.vertical, 4)
+                            .background(category == cat ? OLED.accent.opacity(0.2) : OLED.surface, in: Capsule())
+                            .overlay(Capsule().stroke(category == cat ? OLED.accent : OLED.border, lineWidth: 1))
+                            .foregroundStyle(category == cat ? OLED.accent : OLED.muted)
+                    }.buttonStyle(JarvisPlainButtonStyle())
+                }
+                Spacer()
+                Text("\(commands.count) commands").font(.system(size: 10.5, design: .monospaced)).foregroundStyle(OLED.muted)
+            }
+
+            ScrollView {
+                LazyVStack(spacing: 6) {
+                    ForEach(commands) { cmd in
+                        Button(action: cmd.action) {
+                            HStack(spacing: 12) {
+                                Image(systemName: cmd.icon)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(OLED.accent)
+                                    .frame(width: 28, height: 28)
+                                    .background(OLED.raised, in: RoundedRectangle(cornerRadius: 7))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(cmd.title).font(.system(size: 12.5, weight: .semibold))
+                                    Text(cmd.subtitle).font(.system(size: 10.5)).foregroundStyle(OLED.muted).lineLimit(1)
+                                }
+                                Spacer()
+                                Text(cmd.badge)
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .padding(.horizontal, 7).padding(.vertical, 3)
+                                    .background(OLED.raised, in: RoundedRectangle(cornerRadius: 5))
+                                    .foregroundStyle(OLED.cyan)
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .background(OLED.surface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(OLED.border, lineWidth: 1))
+                        }.buttonStyle(JarvisPlainButtonStyle())
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .frame(width: 640, height: 480)
+        .background(OLED.canvas).foregroundStyle(OLED.text).tint(OLED.accent).preferredColorScheme(.dark)
     }
 }
 
@@ -573,27 +867,103 @@ private struct SetupPreview: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         let steps = jarvis.setupSteps(project, state: state)
-        VStack(alignment: .leading, spacing: 15) {
-            Text("Launch Project Stack").font(.title2.bold())
-            Text(project.displayName).font(.callout).foregroundStyle(OLED.muted)
-            ForEach(steps) { step in
-                HStack {
-                    Image(systemName: step.kind == "dashboard" ? "globe" : step.kind == "folder" ? "folder" : "doc").foregroundStyle(OLED.accent)
-                    VStack(alignment: .leading) {
-                        Text(step.title)
-                        Text(step.kind == "dashboard" ? "Starts local server if needed" : (step.path as NSString).lastPathComponent).font(.caption).foregroundStyle(OLED.muted).lineLimit(2)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("REPOSITORY WORKBENCH").font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1.3).foregroundStyle(OLED.cyan)
+                    Text(project.displayName).font(.title2.bold())
+                }
+                Spacer()
+                Text(project.language)
+                    .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(OLED.raised, in: Capsule())
+                    .foregroundStyle(OLED.cyan)
+            }
+            Text("\(project.stage) · \(project.folder)").font(.system(size: 11.5, design: .monospaced)).foregroundStyle(OLED.muted)
+
+            // 1-Click IDE & Finder Actions
+            VStack(alignment: .leading, spacing: 8) {
+                Text("INSTANT DEVELOPER ACTIONS").font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundStyle(OLED.muted)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                    workbenchButton("Open in Cursor", icon: "cursorarrow.rays") {
+                        openInApp(appName: "Cursor", path: project.folder)
+                    }
+                    workbenchButton("Open in VS Code", icon: "chevron.left.forwardslash.chevron.right") {
+                        openInApp(appName: "Visual Studio Code", path: project.folder)
+                    }
+                    workbenchButton("Open in Terminal", icon: "terminal.fill") {
+                        openInApp(appName: "Terminal", path: project.folder)
+                    }
+                    workbenchButton("Reveal in Finder", icon: "folder.fill") {
+                        if !AppMode.isDemo && FileManager.default.fileExists(atPath: project.folder) {
+                            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: project.folder)
+                        } else {
+                            state.notice = "Revealed \(project.folder) in Finder."
+                        }
+                        dismiss()
+                    }
+                    workbenchButton("Copy Repo Path", icon: "doc.on.doc.fill") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(project.folder, forType: .string)
+                        state.notice = "Copied '\(project.folder)' to clipboard."
+                        dismiss()
+                    }
+                    workbenchButton("Focus in AI Assistant", icon: "sparkles") {
+                        jarvis.setFocus(project)
+                        NotificationCenter.default.post(name: Notification.Name("jarvis.focusComposer"), object: nil)
+                        dismiss()
+                    }
+                }
+            }
+
+            Divider().overlay(OLED.border)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("STACK LAUNCH PIPELINE").font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundStyle(OLED.muted)
+                ForEach(steps) { step in
+                    HStack {
+                        Image(systemName: step.kind == "dashboard" ? "globe" : step.kind == "folder" ? "folder" : "doc").foregroundStyle(OLED.accent)
+                        VStack(alignment: .leading) {
+                            Text(step.title).font(.system(size: 12.5, weight: .medium))
+                            Text(step.kind == "dashboard" ? "Starts local server if needed" : (step.path as NSString).lastPathComponent).font(.caption).foregroundStyle(OLED.muted).lineLimit(2)
+                        }
                     }
                 }
             }
             HStack {
-                Button("Cancel") { dismiss() }
+                Button("Close") { dismiss() }
                 Spacer()
-                Button("Launch \(steps.count) items") {
+                Button("Launch \(steps.count) Stack Items") {
                     dismiss()
                     jarvis.run(JarvisAction(kind: "prepare", targetID: project.id), state: state)
                 }.disabled(jarvis.busy).buttonStyle(.borderedProminent)
             }
-        }.padding(24).frame(width: 480).background(OLED.canvas).foregroundStyle(OLED.text).tint(OLED.accent).preferredColorScheme(.dark)
+        }.padding(24).frame(width: 520).background(OLED.canvas).foregroundStyle(OLED.text).tint(OLED.accent).preferredColorScheme(.dark)
+    }
+
+    private func workbenchButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon).font(.system(size: 12, weight: .semibold)).foregroundStyle(OLED.accent)
+                Text(title).font(.system(size: 11.5, weight: .semibold))
+                Spacer()
+            }
+            .padding(.horizontal, 12).padding(.vertical, 9)
+            .background(OLED.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(OLED.border, lineWidth: 1))
+        }.buttonStyle(JarvisPlainButtonStyle())
+    }
+
+    private func openInApp(appName: String, path: String) {
+        if !AppMode.isDemo {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            proc.arguments = ["-a", appName, path]
+            try? proc.run()
+        }
+        state.notice = "Opened \(project.displayName) in \(appName)."
+        dismiss()
     }
 }
 

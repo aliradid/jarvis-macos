@@ -59,13 +59,13 @@ enum SampleData {
 
     static var devPorts: [DevPortService] {
         [
-            DevPortService(port: 3000, name: "Next.js App Router", stack: "TypeScript · React 19 · Turbopack", icon: "globe.americas.fill", online: true, responseMs: 4),
-            DevPortService(port: 5173, name: "Vite UI Workbench", stack: "Vite 6 · Tailwind CSS · Storybook", icon: "flame.fill", online: true, responseMs: 2),
-            DevPortService(port: 8000, name: "FastAPI Agent Core", stack: "Python 3.12 · Uvicorn · Pydantic v2", icon: "bolt.horizontal.circle.fill", online: true, responseMs: 6),
-            DevPortService(port: 11434, name: "Ollama Local Runtime", stack: "Metal GPU · llama3.2 + deepseek-r1", icon: "cpu.fill", online: true, responseMs: 1),
-            DevPortService(port: 5432, name: "PostgreSQL 16 Vector DB", stack: "pgvector · HNSW index · Local", icon: "cylinder.split.1x2.fill", online: true, responseMs: 3),
-            DevPortService(port: 6379, name: "Redis 7 Session Store", stack: "In-memory · Pub/Sub queue", icon: "memorychip.fill", online: true, responseMs: 1),
-            DevPortService(port: 8080, name: "Docker Compose Gateway", stack: "OrbStack · 4 containers active", icon: "shippingbox.fill", online: false, responseMs: 0)
+            DevPortService(port: 3000, name: "Next.js App Router", stack: "TypeScript · React 19 · Turbopack", icon: "globe.americas.fill", online: true, responseMs: 4, pid: 48210, processName: "node"),
+            DevPortService(port: 5173, name: "Vite UI Workbench", stack: "Vite 6 · Tailwind CSS · Storybook", icon: "flame.fill", online: true, responseMs: 2, pid: 49102, processName: "node"),
+            DevPortService(port: 8000, name: "FastAPI Agent Core", stack: "Python 3.12 · Uvicorn · Pydantic v2", icon: "bolt.horizontal.circle.fill", online: true, responseMs: 6, pid: 51094, processName: "uvicorn"),
+            DevPortService(port: 11434, name: "Ollama Local Runtime", stack: "Metal GPU · llama3.2 + deepseek-r1", icon: "cpu.fill", online: true, responseMs: 1, pid: 19402, processName: "ollama"),
+            DevPortService(port: 5432, name: "PostgreSQL 16 Vector DB", stack: "pgvector · HNSW index · Local", icon: "cylinder.split.1x2.fill", online: true, responseMs: 3, pid: 1208, processName: "postgres"),
+            DevPortService(port: 6379, name: "Redis 7 Session Store", stack: "In-memory · Pub/Sub queue", icon: "memorychip.fill", online: true, responseMs: 1, pid: 1184, processName: "redis-server"),
+            DevPortService(port: 8080, name: "Docker Compose Gateway", stack: "OrbStack · 4 containers active", icon: "shippingbox.fill", online: false, responseMs: 0, pid: nil, processName: nil)
         ]
     }
 

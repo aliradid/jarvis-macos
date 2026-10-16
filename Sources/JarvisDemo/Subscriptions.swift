@@ -153,19 +153,52 @@ struct SubscriptionsPage: View {
     }
     private func openSelected() { if let selectedID { editing = store.items.first { $0.id.uuidString == selectedID } } }
     private func archive(_ item: OrbitSubscription) { var next = item; next.status = "Archived"; _ = store.save(next) }
+    private func exportBackup() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "jarvis-subscriptions-backup.json"
+        if panel.runModal() == .OK, let url = panel.url,
+           let data = try? JSONEncoder().encode(OrbitBackup(subscriptions: store.items)) {
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+    private func importBackup() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK, let url = panel.url,
+           let data = try? Data(contentsOf: url),
+           let validated = try? OrbitValidatedBackup(data) {
+            for item in validated.subscriptions { _ = store.save(item) }
+        }
+    }
     var header: some View {
-        HStack {
+        HStack(spacing: 10) {
             VStack(alignment:.leading,spacing:5) { Text(refresh.formatted(.dateTime.weekday(.wide).month(.wide).day()).uppercased()).font(.system(size:10,weight:.medium)).tracking(1.4).foregroundStyle(OrbitMutedText); Text(section == "Overview" ? "AI & Developer Subscriptions" : section).font(.system(size:26,weight:.semibold)) }
             Spacer()
+            Button(action: importBackup) {
+                Label("Import JSON", systemImage: "square.and.arrow.down").font(.system(size: 11.5, weight: .medium))
+            }.buttonStyle(JarvisControlStyle())
+            Button(action: exportBackup) {
+                Label("Export JSON", systemImage: "square.and.arrow.up").font(.system(size: 11.5, weight: .medium))
+            }.buttonStyle(JarvisControlStyle())
             Button { editing=OrbitSubscription() } label: { Label("Add subscription",systemImage:"plus").padding(.horizontal,8).padding(.vertical,6) }.buttonStyle(OrbitPrimaryButton()).tint(OrbitAccent).foregroundStyle(.black).keyboardShortcut("n",modifiers:.command).disabled(!store.loaded || store.issue != nil)
         }
     }
     var metrics: some View {
-        VStack(alignment:.leading,spacing:10) {
+        let softwareSpend = OrbitUsdTotal(source.filter { $0.category == "Software" }, rates: fx.rates).monthly
+        let cloudSpend = OrbitUsdTotal(source.filter { $0.category == "Cloud & storage" }, rates: fx.rates).monthly
+        let utilSpend = OrbitUsdTotal(source.filter { $0.category == "Utilities" }, rates: fx.rates).monthly
+        let sumSpend = max(1, softwareSpend + cloudSpend + utilSpend)
+        let swPct = Int(round((softwareSpend / sumSpend) * 100))
+        let clPct = Int(round((cloudSpend / sumSpend) * 100))
+        let utPct = max(0, 100 - swPct - clPct)
+
+        return VStack(alignment:.leading,spacing:10) {
             HStack(spacing:12) {
                 metric(total.complete ? "MONTHLY TOTAL · USD + MAD" : "MONTHLY SUBTOTAL · USD + MAD",OrbitUsdMoney(total.monthly),"All currencies combined",secondaryValue:fx.madTotal(total.monthly))
                 metric(total.complete ? "YEARLY TOTAL · USD + MAD" : "YEARLY SUBTOTAL · USD + MAD",OrbitUsdMoney(total.monthly*12),"Estimate at displayed FX rates",secondaryValue:fx.madTotal(total.monthly*12))
-                metric("ACTIVE & TRIALS","\(live.count)","\(source.filter{$0.status == "Needs review"}.count) need review")
+                metric("ACTIVE & TRIALS","\(live.count)","AI Models \(swPct)% · Cloud \(clPct)% · Tools \(utPct)%")
             }
             HStack(spacing:8) {
                 Text(fx.status).foregroundStyle(fx.failure != nil || fx.stale ? OrbitReviewTint : OrbitMutedText)

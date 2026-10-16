@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct JarvisView: View {
     @EnvironmentObject var state: AppState
@@ -14,68 +15,98 @@ struct JarvisView: View {
     @State private var preferences = false
     @FocusState private var focused: Bool
 
-    private let presets = ["Architecture & Code", "Quota & Burn Advisor", "Shell & DevOps"]
+    private let presets = ["Code & Arch", "Burn Advisor", "DevOps"]
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 14) {
-                JarvisCore(active: jarvis.busy).frame(width: 48, height: 48)
-                VStack(alignment: .leading, spacing: 4) {
+                JarvisCore(active: jarvis.busy).frame(width: 44, height: 44)
+                VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
                         Text("LOCAL OLLAMA ENGINE").font(.system(size: 9.5, weight: .bold, design: .monospaced)).kerning(1.5).foregroundStyle(OLED.accent)
                         HStack(spacing: 5) {
                             Circle().fill(jarvis.busy ? OLED.warning : OLED.online).frame(width: 5.5, height: 5.5)
                             Text(jarvis.busy ? "GENERATING" : "METAL GPU READY").font(.system(size: 8.5, weight: .bold, design: .monospaced)).foregroundStyle(jarvis.busy ? OLED.warning : OLED.online)
                         }.padding(.horizontal, 7).padding(.vertical, 2.5).background(OLED.surface, in: Capsule())
+                        Text("127.0.0.1:11434").font(.system(size: 9, design: .monospaced)).foregroundStyle(OLED.muted)
                     }
-                    Text(jarvis.busy ? jarvis.progress : "Private On-Device AI & Workspace Automation").font(.system(size: 18, weight: .semibold))
+                    Text(jarvis.busy ? jarvis.progress : "Private On-Device AI & Workspace Automation")
+                        .font(.system(size: 18, weight: .semibold))
+                        .lineLimit(1)
                 }
-                Spacer()
+                Spacer(minLength: 16)
 
-                HStack(spacing: 6) {
-                    ForEach(jarvis.availableModels, id: \.self) { model in
-                        let isSel = jarvis.selectedModel == model
-                        Button { jarvis.selectedModel = model } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "cpu.fill").font(.system(size: 9.5))
-                                Text(model).font(.system(size: 10.5, weight: .semibold, design: .monospaced)).lineLimit(1)
-                            }
-                            .padding(.horizontal, 9).padding(.vertical, 6)
-                            .background(isSel ? OLED.accent.opacity(0.20) : OLED.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(isSel ? OLED.accent : OLED.border, lineWidth: 1))
-                            .foregroundStyle(isSel ? OLED.text : OLED.muted)
-                        }.buttonStyle(JarvisPlainButtonStyle()).fixedSize()
-                    }
-                }
+                Button {
+                    let md = jarvis.exportMarkdown()
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(md, forType: .string)
+                    state.notice = "Copied conversation transcript as Markdown to clipboard."
+                } label: {
+                    Label("Export MD", systemImage: "doc.on.doc").font(.system(size: 11, weight: .medium))
+                }.buttonStyle(JarvisControlStyle()).foregroundStyle(OLED.text).help("Copy transcript as Markdown")
 
                 Button { preferences = true } label: {
-                    Label("System Context", systemImage: "slider.horizontal.3").font(.system(size: 11.5, weight: .medium))
+                    Label("System Context", systemImage: "slider.horizontal.3").font(.system(size: 11, weight: .medium))
                 }.buttonStyle(JarvisControlStyle()).foregroundStyle(OLED.text).help("Preferences").accessibilityLabel("Preferences")
+
+                if !jarvis.history.turns.isEmpty {
+                    Button {
+                        jarvis.clearHistory()
+                        state.notice = "Cleared AI Assistant conversation history."
+                    } label: {
+                        Image(systemName: "trash").font(.system(size: 11))
+                    }.buttonStyle(JarvisControlStyle()).foregroundStyle(OLED.muted).help("Clear conversation")
+                }
+
                 if !embedded { Button { dismiss() } label: { Image(systemName: "xmark") }.buttonStyle(JarvisPlainButtonStyle()).accessibilityLabel("Close Jarvis") }
             }
-            .padding(.horizontal, 24).padding(.vertical, 16)
+            .padding(.horizontal, 24).padding(.vertical, 14)
             .background(OLED.surface.opacity(0.45))
 
             Rectangle().fill(LinearGradient(colors: [OLED.accent.opacity(0.65), OLED.cyan.opacity(0.35), OLED.accent.opacity(0.05)], startPoint: .leading, endPoint: .trailing)).frame(height: 1)
 
-            // Preset Strip
-            HStack(spacing: 8) {
-                Text("MODE PRESET:").font(.system(size: 9.5, weight: .bold, design: .monospaced)).foregroundStyle(OLED.muted)
+            // Preset, Model & Live Telemetry Context Strip
+            HStack(spacing: 5) {
+                Text("MODEL").font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(OLED.muted).fixedSize()
+                ForEach(jarvis.availableModels.prefix(3), id: \.self) { model in
+                    let isSel = jarvis.selectedModel == model
+                    Button { jarvis.selectedModel = model } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "cpu.fill").font(.system(size: 7.5))
+                            Text(model).font(.system(size: 9.5, weight: .semibold, design: .monospaced)).lineLimit(1)
+                        }
+                        .padding(.horizontal, 6).padding(.vertical, 3.5)
+                        .background(isSel ? OLED.accent.opacity(0.22) : OLED.surface, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).stroke(isSel ? OLED.accent : OLED.border, lineWidth: 1))
+                        .foregroundStyle(isSel ? OLED.text : OLED.muted)
+                    }.buttonStyle(JarvisPlainButtonStyle()).fixedSize()
+                }
+
+                Divider().frame(height: 12).overlay(OLED.border).padding(.horizontal, 1)
+
+                Text("PRESET").font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(OLED.muted).fixedSize()
                 ForEach(presets, id: \.self) { preset in
-                    let active = jarvis.activePreset == preset
+                    let active = jarvis.activePreset == preset || (preset == "Code & Arch" && jarvis.activePreset == "Architecture & Code")
                     Button { jarvis.activePreset = preset } label: {
                         Text(preset)
-                            .font(.system(size: 10.5, weight: .semibold))
-                            .padding(.horizontal, 9).padding(.vertical, 4)
+                            .font(.system(size: 9.5, weight: .semibold))
+                            .lineLimit(1)
+                            .padding(.horizontal, 7).padding(.vertical, 3.5)
                             .background(active ? OLED.accent.opacity(0.16) : OLED.surface, in: Capsule())
                             .overlay(Capsule().stroke(active ? OLED.accent.opacity(0.6) : OLED.border, lineWidth: 1))
                             .foregroundStyle(active ? OLED.accent : OLED.muted)
-                    }.buttonStyle(JarvisPlainButtonStyle())
+                    }.buttonStyle(JarvisPlainButtonStyle()).fixedSize()
                 }
-                Spacer()
-                Text("127.0.0.1:11434 · 0ms Cloud Telemetry · $0/tok").font(.system(size: 10, design: .monospaced)).foregroundStyle(OLED.muted)
+
+                Spacer(minLength: 4)
+
+                Text("CONTEXT").font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(OLED.muted).fixedSize()
+                contextTogglePill("Quotas", isOn: $jarvis.includeQuotasContext)
+                contextTogglePill("Ports", isOn: $jarvis.includePortsContext)
+                contextTogglePill("Hardware", isOn: $jarvis.includeHardwareContext)
+                contextTogglePill("Repos", isOn: $jarvis.includeReposContext)
             }
-            .padding(.horizontal, 24).padding(.vertical, 9)
+            .padding(.horizontal, 22).padding(.vertical, 7)
             .background(OLED.canvas)
 
             Divider().overlay(OLED.border)
@@ -102,17 +133,27 @@ struct JarvisView: View {
                     .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
             }
 
-            VStack(spacing: 10) {
-                HStack(spacing: 8) {
+            VStack(spacing: 9) {
+                HStack(spacing: 6) {
+                    ForEach(["/quotas", "/ports", "/hardware", "/repos", "/spend"], id: \.self) { slash in
+                        Button { jarvis.send(slash, state: state) } label: {
+                            Text(slash)
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(OLED.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).stroke(OLED.accent.opacity(0.35), lineWidth: 1))
+                                .foregroundStyle(OLED.accent)
+                        }.buttonStyle(JarvisPlainButtonStyle()).disabled(jarvis.busy)
+                    }
+                    Divider().frame(height: 14).overlay(OLED.border)
                     suggestion("Audit Claude 5h & Codex token burn rate")
-                    suggestion("Inspect active localhost ports (:3000, :8000, :11434)")
-                    suggestion("Open Cursor AI IDE on jarvis-macos")
-                    suggestion("Summarize monthly AI & cloud spend")
+                    suggestion("Inspect active localhost ports (:3000, :8000)")
+                    suggestion("Open Cursor AI IDE")
                     Spacer(minLength: 0)
                 }
                 HStack(alignment: .center, spacing: 12) {
                     Image(systemName: "sparkles").foregroundStyle(OLED.accent).font(.system(size: 14))
-                    TextField("Ask Jarvis (\(jarvis.selectedModel)) or type 'open <service>'…", text: $draft).textFieldStyle(.plain).focused($focused)
+                    TextField("Ask Jarvis (\(jarvis.selectedModel)), run /quotas or /ports, or type 'open <service>'…", text: $draft).textFieldStyle(.plain).focused($focused)
                         .font(.system(size: 13.5))
                         .onSubmit { submit() }.accessibilityLabel("Ask Jarvis")
                     if jarvis.busy {
@@ -136,7 +177,7 @@ struct JarvisView: View {
                 .background(OLED.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(focused ? OLED.accent : OLED.border, lineWidth: 1))
             }
-            .padding(.horizontal, 22).padding(.vertical, 16)
+            .padding(.horizontal, 22).padding(.vertical, 14)
             .background(OLED.surface.opacity(0.35))
         }
         .frame(minWidth: 460, maxWidth: .infinity, minHeight: embedded ? 360 : 560, maxHeight: .infinity)
@@ -145,6 +186,22 @@ struct JarvisView: View {
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("jarvis.focusComposer"))) { _ in focused = false; DispatchQueue.main.async { focused = true } }
         .task { await jarvis.prepare(state: state) }
         .sheet(isPresented: $preferences) { JarvisPreferences(jarvis: jarvis) }
+    }
+
+    private func contextTogglePill(_ label: String, isOn: Binding<Bool>) -> some View {
+        Button { isOn.wrappedValue.toggle() } label: {
+            HStack(spacing: 4) {
+                Image(systemName: isOn.wrappedValue ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 8.5))
+                Text(label)
+                    .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 7).padding(.vertical, 3.5)
+            .background(isOn.wrappedValue ? OLED.online.opacity(0.14) : OLED.surface, in: Capsule())
+            .overlay(Capsule().stroke(isOn.wrappedValue ? OLED.online.opacity(0.45) : OLED.border, lineWidth: 1))
+            .foregroundStyle(isOn.wrappedValue ? OLED.online : OLED.muted)
+        }.buttonStyle(JarvisPlainButtonStyle()).fixedSize()
     }
 
     private func conversationCard(_ turn: JarvisTurn) -> some View {
@@ -163,6 +220,19 @@ struct JarvisView: View {
                 Text(user ? "Prompt" : "Local Metal Inference · 18ms TTFT")
                     .font(.system(size: 9.5, design: .monospaced))
                     .foregroundStyle(OLED.muted)
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(turn.text, forType: .string)
+                    state.notice = "Copied message to clipboard."
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "doc.on.doc").font(.system(size: 9))
+                        Text("Copy").font(.system(size: 9.5, weight: .medium))
+                    }
+                    .padding(.horizontal, 6).padding(.vertical, 2.5)
+                    .background(OLED.raised, in: RoundedRectangle(cornerRadius: 5))
+                    .foregroundStyle(OLED.muted)
+                }.buttonStyle(JarvisPlainButtonStyle())
             }
             Text(turn.text)
                 .font(.system(size: 13.5))
@@ -199,7 +269,7 @@ struct JarvisView: View {
         Button(text) { jarvis.send(text, state: state) }
             .font(.system(size: 10.5, weight: .medium))
             .buttonStyle(JarvisPlainButtonStyle())
-            .padding(.horizontal, 10).padding(.vertical, 6)
+            .padding(.horizontal, 10).padding(.vertical, 5)
             .background(OLED.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(OLED.border, lineWidth: 1))
             .foregroundStyle(OLED.muted)

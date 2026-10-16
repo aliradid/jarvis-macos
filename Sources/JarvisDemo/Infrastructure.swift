@@ -106,6 +106,14 @@ struct MacTelemetry: Equatable {
     }
 }
 
+struct CustomPortSpec: Codable, Equatable, Identifiable {
+    var id: Int { port }
+    var port: Int
+    var name: String
+    var stack: String
+    var icon: String = "network"
+}
+
 struct DevPortService: Identifiable, Equatable {
     var id: String { "\(port)" }
     let port: Int
@@ -114,7 +122,14 @@ struct DevPortService: Identifiable, Equatable {
     let icon: String
     var online: Bool
     var responseMs: Int
+    var pid: Int? = nil
+    var processName: String? = nil
+    var isCustom: Bool = false
     var url: String { "http://127.0.0.1:\(port)" }
+    var processBadge: String? {
+        if let processName, let pid { return "\(processName) · PID \(pid)" }
+        return nil
+    }
 }
 
 struct OllamaLocalModel: Identifiable, Equatable {
@@ -139,6 +154,7 @@ struct ConnectionHealth: Identifiable {
     static let shared = InfrastructureStore()
     @Published var telemetry: MacTelemetry = .capture()
     @Published var devPorts: [DevPortService] = []
+    @Published var customPorts: [CustomPortSpec] = []
     @Published var ollamaModels: [OllamaLocalModel] = []
     @Published var machines: [MachineHealth] = []
     @Published var connections: [ConnectionHealth] = []
@@ -146,17 +162,22 @@ struct ConnectionHealth: Identifiable {
     @Published var updated: Date?
 
     static let catalogPorts: [(Int, String, String, String)] = [
-        (3000, "Next.js App Router", "TypeScript · React 19", "globe"),
-        (5173, "Vite HMR Dev Server", "Vite · Tailwind CSS", "bolt.horizontal.fill"),
-        (8000, "FastAPI Inference API", "Python 3.12 · Uvicorn", "terminal.fill"),
-        (11434, "Ollama LLM Runtime", "Local GGUF · Metal GPU", "cpu.fill"),
-        (5432, "PostgreSQL 16", "Database · Local cluster", "cylinder.split.1x2.fill"),
-        (6379, "Redis Cache", "In-memory · Keystore", "memorychip.fill"),
-        (8080, "Docker Gateway", "Containers · Bridge", "shippingbox.fill")
+        (3000, "Next.js App Router", "TypeScript · React 19", "globe.americas.fill"),
+        (5173, "Vite UI Workbench", "Vite 6 · Tailwind CSS", "flame.fill"),
+        (8000, "FastAPI Agent Core", "Python 3.12 · Uvicorn", "bolt.horizontal.circle.fill"),
+        (11434, "Ollama Local Runtime", "Metal GPU · GGUF", "cpu.fill"),
+        (5432, "PostgreSQL 16 Vector DB", "pgvector · HNSW index", "cylinder.split.1x2.fill"),
+        (6379, "Redis 7 Session Store", "In-memory · Pub/Sub", "memorychip.fill"),
+        (8080, "Docker Compose Gateway", "OrbStack · Containers", "shippingbox.fill")
     ]
 
     init() {
         telemetry = MacTelemetry.capture()
+        if !AppMode.isDemo,
+           let data = Storage.readData("custom-ports.json"),
+           let saved = try? JSONDecoder().decode([CustomPortSpec].self, from: data) {
+            customPorts = saved
+        }
         devPorts = SampleData.devPorts
         ollamaModels = SampleData.ollamaModels
         machines = SampleData.machines
@@ -167,23 +188,79 @@ struct ConnectionHealth: Identifiable {
         }
     }
 
+    func addCustomPort(port: Int, name: String, stack: String) {
+        guard (1...65535).contains(port) else { return }
+        let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Local Service :\(port)" : name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanStack = stack.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Custom TCP Endpoint" : stack.trimmingCharacters(in: .whitespacesAndNewlines)
+        customPorts.removeAll { $0.port == port }
+        customPorts.append(CustomPortSpec(port: port, name: cleanName, stack: cleanStack))
+        if !AppMode.isDemo, let data = try? JSONEncoder().encode(customPorts) {
+            Storage.writeData(data, named: "custom-ports.json")
+        }
+        if AppMode.isDemo {
+            devPorts.removeAll { $0.port == port }
+            devPorts.append(DevPortService(port: port, name: cleanName, stack: cleanStack, icon: "network", online: true, responseMs: 2, pid: 54120, processName: "custom-srv", isCustom: true))
+        } else {
+            Task { await refresh() }
+        }
+    }
+
+    func removeCustomPort(port: Int) {
+        customPorts.removeAll { $0.port == port }
+        devPorts.removeAll { $0.port == port && $0.isCustom }
+        if !AppMode.isDemo, let data = try? JSONEncoder().encode(customPorts) {
+            Storage.writeData(data, named: "custom-ports.json")
+        }
+    }
+
+    func stopProcess(for service: DevPortService) async -> Bool {
+        if AppMode.isDemo {
+            if let idx = devPorts.firstIndex(where: { $0.port == service.port }) {
+                devPorts[idx].online = false
+                devPorts[idx].responseMs = 0
+                devPorts[idx].pid = nil
+                devPorts[idx].processName = nil
+            }
+            return true
+        }
+        guard let pid = service.pid, pid > 1 else { return false }
+        let res = kill(pid_t(pid), SIGTERM)
+        try? await Task.sleep(nanoseconds: 250_000_000)
+        await refresh()
+        return res == 0
+    }
+
     func refresh() async {
         refreshing = true
         defer { refreshing = false; updated = Date() }
         telemetry = MacTelemetry.capture()
         if AppMode.isDemo {
-            devPorts = SampleData.devPorts
+            let customServices = customPorts.map {
+                DevPortService(port: $0.port, name: $0.name, stack: $0.stack, icon: $0.icon, online: true, responseMs: 2, pid: 54120, processName: "node", isCustom: true)
+            }
+            devPorts = SampleData.devPorts + customServices.filter { c in !SampleData.devPorts.contains(where: { $0.port == c.port }) }
             ollamaModels = SampleData.ollamaModels
             return
         }
+        var allSpecs: [(Int, String, String, String, Bool)] = Self.catalogPorts.map { ($0.0, $0.1, $0.2, $0.3, false) }
+        for custom in customPorts where !allSpecs.contains(where: { $0.0 == custom.port }) {
+            allSpecs.append((custom.port, custom.name, custom.stack, custom.icon, true))
+        }
         var scanned: [DevPortService] = []
-        for (port, name, stack, icon) in Self.catalogPorts {
+        for (port, name, stack, icon, isCustom) in allSpecs {
             let start = DispatchTime.now()
             let isUp = await Self.checkPort(port)
             let elapsed = Int((DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000)
-            scanned.append(DevPortService(port: port, name: name, stack: stack, icon: icon, online: isUp, responseMs: isUp ? max(1, elapsed) : 0))
+            var pid: Int? = nil
+            var procName: String? = nil
+            if isUp, let info = await Self.lookupListeningProcess(port: port) {
+                pid = info.0
+                procName = info.1
+            }
+            scanned.append(DevPortService(port: port, name: name, stack: stack, icon: icon, online: isUp, responseMs: isUp ? max(1, elapsed) : 0, pid: pid, processName: procName, isCustom: isCustom))
         }
         devPorts = scanned
+        await DiagnosticJournal.shared.record(source: "Localhost Port Scanner", message: "Scanned \(scanned.count) ports (\(scanned.filter(\.online).count) online)")
 
         if let models = await Self.fetchOllamaModels(), !models.isEmpty {
             ollamaModels = models
@@ -199,6 +276,31 @@ struct ConnectionHealth: Identifiable {
                 disk: String(format: "%.0f%%", telemetry.diskPercent)
             )
         ]
+    }
+
+    private static func lookupListeningProcess(port: Int) async -> (Int, String)? {
+        await Task.detached(priority: .utility) {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
+            proc.arguments = ["-nP", "-iTCP:\(port)", "-sTCP:LISTEN", "-Fpc"]
+            let pipe = Pipe()
+            proc.standardOutput = pipe
+            proc.standardError = Pipe()
+            do {
+                try proc.run()
+                proc.waitUntilExit()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                guard let output = String(data: data, encoding: .utf8) else { return nil }
+                var foundPID: Int?
+                var foundCmd: String?
+                for line in output.split(separator: "\n") {
+                    if line.first == "p", let p = Int(line.dropFirst()) { foundPID = p }
+                    else if line.first == "c" { foundCmd = String(line.dropFirst()) }
+                    if let p = foundPID, let c = foundCmd { return (p, c) }
+                }
+            } catch {}
+            return nil
+        }.value
     }
 
     private static func checkPort(_ port: Int) async -> Bool {
@@ -311,6 +413,13 @@ struct InfrastructurePanel: View {
                                 Text(svc.stack).font(.system(size: 10)).foregroundStyle(OLED.muted)
                             }
                             Spacer()
+                            if let badge = svc.processBadge {
+                                Text(badge)
+                                    .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(OLED.cyan)
+                                    .padding(.horizontal, 6).padding(.vertical, 2.5)
+                                    .background(OLED.cyan.opacity(0.12), in: Capsule())
+                            }
                             Text(":" + String(svc.port)).font(.system(size: 11, weight: .semibold, design: .monospaced)).padding(.horizontal, 7).padding(.vertical, 3).background(OLED.raised, in: RoundedRectangle(cornerRadius: 5))
                             HStack(spacing: 5) {
                                 Circle().fill(svc.online ? OLED.online : OLED.muted.opacity(0.4)).frame(width: 6, height: 6)
