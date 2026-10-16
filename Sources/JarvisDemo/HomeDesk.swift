@@ -16,8 +16,19 @@ struct DeskArchive: Codable {
     @Published private(set) var archive = DeskArchive()
     @Published private(set) var issue: String?
     init() {
-        if AppMode.isDemo { archive = DeskArchive(tasks: [DeskTask(title: "Optimize Ollama streaming latency"), DeskTask(title: "Monitor Claude Code 5h sliding window")], recent: ["dev:github", "dev:cursor"], pins: []) }
-        else if let data = Storage.readData("desk.json"), let saved = try? JSONDecoder().decode(DeskArchive.self, from: data) { archive = saved }
+        if AppMode.isDemo {
+            archive = DeskArchive(
+                tasks: [
+                    DeskTask(title: "Benchmark deepseek-r1:14b Metal token throughput on M3 Max"),
+                    DeskTask(title: "Verify Claude Code 5h sliding window before multi-repo refactor"),
+                    DeskTask(title: "Ship v2.0.0 signed macOS universal DMG release")
+                ],
+                recent: ["dev:cursor", "dev:github", "dev:claude", "dev:terminal"],
+                pins: ["dev:cursor", "dev:github", "dev:claude", "dev:localhost"]
+            )
+        } else if let data = Storage.readData("desk.json"), let saved = try? JSONDecoder().decode(DeskArchive.self, from: data) {
+            archive = saved
+        }
     }
     private func update(_ change: (inout DeskArchive) -> Void) {
         change(&archive)
@@ -41,96 +52,100 @@ struct HomeDesk: View {
     let openProject: (MissionProject) -> Void
     @State private var draft = ""
     @State private var showCompleted = false
-    private var recentTiles: [Tile] { store.archive.recent.compactMap { id in state.memberTiles.first { $0.id == id } } }
-    private var recentProjects: [MissionProject] { (jarvis.history.recentProjectIDs ?? []).prefix(3).compactMap { id in jarvis.dashboard.projects.first { $0.id == id } } }
     private var visibleTasks: [DeskTask] { store.archive.tasks.filter { showCompleted || !$0.done } }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Divider()
-            HStack(alignment: .top, spacing: 28) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Continue working").font(.system(size: 15, weight: .medium))
-                    if recentTiles.isEmpty && recentProjects.isEmpty {
-                        Text("Open a shortcut or project in Jarvis. Your recent work will appear here.")
-                            .font(.system(size: 12)).foregroundStyle(OLED.muted).fixedSize(horizontal: false, vertical: true).padding(.vertical, 8)
-                    }
-                    ForEach(recentProjects.prefix(2)) { project in
+        HStack(alignment: .top, spacing: 16) {
+            // Left Card: Active Git Repositories
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label("ACTIVE REPOSITORIES", systemImage: "point.3.connected.trianglepath.dotted")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1.2).foregroundStyle(OLED.cyan)
+                    Spacer()
+                    Text("\(jarvis.dashboard.projects.count) tracked").font(.system(size: 11, design: .monospaced)).foregroundStyle(OLED.muted)
+                }
+                VStack(spacing: 7) {
+                    ForEach(jarvis.dashboard.projects.prefix(3)) { project in
                         Button { openProject(project) } label: {
-                            deskRow(icon: "folder", title: project.title, subtitle: "\(project.source) · \(project.language.uppercased())")
+                            HStack(spacing: 10) {
+                                Image(systemName: project.status == "running" ? "bolt.horizontal.circle.fill" : project.needsAttention ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(project.status == "running" ? OLED.online : project.needsAttention ? OLED.warning : OLED.accent)
+                                    .frame(width: 28, height: 28)
+                                    .background(OLED.raised, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 6) {
+                                        Text(project.title).font(.system(size: 12.5, weight: .semibold, design: .monospaced)).lineLimit(1)
+                                        Text(project.language).font(.system(size: 9.5, weight: .semibold)).padding(.horizontal, 5).padding(.vertical, 1.5).background(OLED.raised, in: Capsule()).foregroundStyle(OLED.muted)
+                                    }
+                                    Text(project.detail).font(.system(size: 10.5)).foregroundStyle(OLED.muted).lineLimit(1)
+                                }
+                                Spacer(minLength: 4)
+                                Text(project.stage).font(.system(size: 10, weight: .medium, design: .monospaced)).foregroundStyle(OLED.accent)
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .background(OLED.raised.opacity(0.45), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(OLED.border, lineWidth: 1))
                         }.buttonStyle(JarvisPlainButtonStyle())
                     }
-                    ForEach(recentTiles.prefix(4)) { tile in
-                        Button { state.launch(tile) } label: { deskRow(icon: tile.kind == .file ? "doc" : "globe", title: tile.label, subtitle: tile.subtitle) }
-                            .buttonStyle(JarvisPlainButtonStyle()).disabled(state.launching.contains(tile.id))
-                            .contextMenu { Button(store.archive.pins.contains(tile.id) ? "Unpin" : "Pin to Home") { store.pin(tile.id) } }
-                    }
-                }.frame(maxWidth: .infinity, alignment: .topLeading)
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("My checklist").font(.system(size: 15, weight: .medium))
-                        Text("\(store.archive.tasks.filter { !$0.done }.count)").font(.caption).foregroundStyle(OLED.muted)
-                        Spacer()
-                        if store.archive.tasks.contains(where: \.done) {
-                            Button(showCompleted ? "Hide done" : "Show done") { showCompleted.toggle() }.font(.caption).buttonStyle(JarvisPlainButtonStyle()).foregroundStyle(OLED.muted)
-                        }
-                    }
-                    HStack(spacing: 8) {
-                        TextField("Add something to do…", text: $draft).textFieldStyle(.plain).onSubmit(addTask)
-                        Button(action: addTask) { Image(systemName: "plus").frame(width: 28, height: 28) }
-                            .buttonStyle(JarvisPlainButtonStyle()).disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty).accessibilityLabel("Add checklist item")
-                    }.font(.system(size: 12)).padding(.leading, 10).padding(.trailing, 3).padding(.vertical, 3)
-                        .background(OLED.surface, in: RoundedRectangle(cornerRadius: 8))
-                    if visibleTasks.isEmpty { Text("Keep your next steps here.").font(.system(size: 12)).foregroundStyle(OLED.muted).padding(.vertical, 4) }
-                    ScrollView {
-                        LazyVStack(spacing: 1) {
-                            ForEach(visibleTasks) { item in
-                                Button { store.toggle(item.id) } label: {
-                                    HStack(alignment: .top, spacing: 9) {
-                                        Image(systemName: item.done ? "checkmark.circle.fill" : "circle").foregroundStyle(item.done ? OLED.online : OLED.muted)
-                                        Text(item.title).strikethrough(item.done).foregroundStyle(item.done ? OLED.muted : OLED.text).multilineTextAlignment(.leading)
-                                        Spacer(minLength: 0)
-                                    }.font(.system(size: 12)).padding(.vertical, 7).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                                }.buttonStyle(JarvisPlainButtonStyle()).accessibilityLabel("\(item.done ? "Completed" : "To do"): \(item.title)")
-                                    .contextMenu { Button("Delete item", role: .destructive) { store.remove(item.id) } }
-                            }
-                        }
-                    }.frame(maxHeight: visibleTasks.isEmpty ? 0 : min(CGFloat(visibleTasks.count) * 44, 190))
-                }.frame(maxWidth: .infinity, alignment: .topLeading)
+                }
             }
-            VStack(alignment: .leading, spacing: 9) {
+            .padding(15)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(OLED.surface, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(OLED.border, lineWidth: 1))
+
+            // Right Card: Engineering Focus Checklist
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("Pinned actions").font(.system(size: 15, weight: .medium))
+                    Label("ENGINEERING FOCUS QUEUE", systemImage: "checklist")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(1.2).foregroundStyle(OLED.accent)
                     Spacer()
-                    Menu {
-                        ForEach(state.memberTiles) { tile in
-                            Button { store.pin(tile.id) } label: {
-                                Label(tile.label, systemImage: store.archive.pins.contains(tile.id) ? "checkmark" : "plus")
-                            }
-                        }
-                    } label: { Label("Add pin", systemImage: "plus").font(.system(size: 12)) }.menuStyle(.borderlessButton).fixedSize()
-                }
-                if store.archive.pins.isEmpty { Text("Pin the files and channel shortcuts you want one click away.").font(.system(size: 12)).foregroundStyle(OLED.muted) }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 145, maximum: 240), spacing: 8)], alignment: .leading, spacing: 8) {
-                    ForEach(store.archive.pins.compactMap { id in state.memberTiles.first { $0.id == id } }) { tile in
-                        Button { state.launch(tile) } label: {
-                            HStack(spacing: 8) { Image(systemName: tile.kind == .file ? "doc" : "arrow.up.right"); Text(tile.label).lineLimit(1); Spacer(minLength: 0) }
-                                .font(.system(size: 12)).padding(11).frame(maxWidth: .infinity).background(OLED.surface, in: RoundedRectangle(cornerRadius: 8))
-                        }.buttonStyle(JarvisPlainButtonStyle()).disabled(state.launching.contains(tile.id))
-                            .contextMenu { Button("Unpin") { store.pin(tile.id) } }
+                    Text("\(store.archive.tasks.filter { !$0.done }.count) open").font(.system(size: 11, design: .monospaced)).foregroundStyle(OLED.muted)
+                    if store.archive.tasks.contains(where: \.done) {
+                        Button(showCompleted ? "Hide done" : "Show done") { showCompleted.toggle() }.font(.caption).buttonStyle(JarvisPlainButtonStyle()).foregroundStyle(OLED.muted)
                     }
                 }
+
+                VStack(spacing: 6) {
+                    ForEach(visibleTasks.prefix(3)) { item in
+                        Button { store.toggle(item.id) } label: {
+                            HStack(spacing: 9) {
+                                Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(item.done ? OLED.online : OLED.accent)
+                                Text(item.title)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .strikethrough(item.done)
+                                    .foregroundStyle(item.done ? OLED.muted : OLED.text)
+                                    .lineLimit(1)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .background(OLED.raised.opacity(0.45), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(OLED.border, lineWidth: 1))
+                        }
+                        .buttonStyle(JarvisPlainButtonStyle())
+                        .contextMenu { Button("Delete item", role: .destructive) { store.remove(item.id) } }
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill").foregroundStyle(OLED.accent).font(.system(size: 13))
+                    TextField("Add sprint task or deployment note…", text: $draft).textFieldStyle(.plain).onSubmit(addTask)
+                }
+                .font(.system(size: 11.5))
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .background(OLED.raised.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            if let issue = store.issue { Text(issue).font(.caption).foregroundStyle(OLED.offline) }
-        }.padding(.top, 6)
+            .padding(15)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(OLED.surface, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(OLED.border, lineWidth: 1))
+        }
     }
+
     private func addTask() { store.add(draft); if store.issue == nil { draft = "" } }
-    private func deskRow(icon: String, title: String, subtitle: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon).font(.system(size: 16, weight: .light)).foregroundStyle(OLED.muted).frame(width: 22)
-            VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 12, weight: .medium)).lineLimit(1); Text(subtitle).font(.system(size: 10)).foregroundStyle(OLED.muted).lineLimit(1) }
-            Spacer(minLength: 4); Image(systemName: "arrow.up.right").font(.system(size: 10)).foregroundStyle(OLED.muted)
-        }.padding(.vertical, 5).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-    }
 }
 
 struct HomeAttention: View {
@@ -139,29 +154,7 @@ struct HomeAttention: View {
     @ObservedObject var infrastructure: InfrastructureStore
     let openSubscription: (String) -> Void
     let openProject: (MissionProject) -> Void
-    @State private var systems = false
     var body: some View {
-        let trials = subscriptions.items.filter { $0.status == "Trial" && $0.hasDate && (0...7).contains($0.days) }.sorted { $0.days < $1.days }
-        let failures = infrastructure.connections.filter { $0.healthy == false }
-        let projects = Array(jarvis.attentionProjects.prefix(2))
-        if !trials.isEmpty || !failures.isEmpty || !projects.isEmpty {
-            VStack(alignment: .leading, spacing: 3) {
-                Label("Needs your attention", systemImage: "exclamationmark.circle").font(.system(size: 12, weight: .medium)).foregroundStyle(OLED.offline).padding(.bottom, 3)
-                ForEach(trials.prefix(2)) { item in
-                    Button { openSubscription(item.id.uuidString) } label: { attentionRow("\(item.name) · trial \(item.days == 0 ? "ends today" : "ends in \(item.days)d")", action: "Review trial") }.buttonStyle(JarvisPlainButtonStyle())
-                }
-                ForEach(projects) { project in
-                    Button { openProject(project) } label: { attentionRow("\(project.source) · \(project.title)", action: "Review") }.buttonStyle(JarvisPlainButtonStyle())
-                }
-                if !failures.isEmpty {
-                    Button { systems = true } label: { attentionRow(failures.map(\.name).joined(separator: ", ") + " unavailable", action: "Inspect") }.buttonStyle(JarvisPlainButtonStyle())
-                }
-            }.padding(12).background(OLED.surface, in: RoundedRectangle(cornerRadius: 10))
-                .popover(isPresented: $systems) { InfrastructurePanel(store: infrastructure).frame(width: 570).preferredColorScheme(.dark) }
-        }
-    }
-    private func attentionRow(_ title: String, action: String) -> some View {
-        HStack { Text(title).lineLimit(1); Spacer(minLength: 10); Text(action).foregroundStyle(OLED.accent); Image(systemName: "chevron.right").font(.system(size: 9)) }
-            .font(.system(size: 12)).padding(.vertical, 5).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        EmptyView()
     }
 }

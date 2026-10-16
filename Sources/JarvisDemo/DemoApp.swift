@@ -4,9 +4,14 @@ import AppKit
 struct DemoDashboard: View {
     var page = "Overview"
     var body: some View {
-        JarvisHome(page: page).environmentObject(AppState.shared).environmentObject(InboxStore.shared).environmentObject(JarvisStore.shared).frame(width: 1180, height: 900)
+        JarvisHome(page: page)
+            .environmentObject(AppState.shared)
+            .environmentObject(InboxStore.shared)
+            .environmentObject(JarvisStore.shared)
+            .frame(width: 1180, height: 900)
     }
 }
+
 struct PortfolioApp: App {
     var body: some Scene {
         WindowGroup(AppMode.isDemo ? "Jarvis Demo" : "Jarvis") {
@@ -19,18 +24,21 @@ struct PortfolioApp: App {
                     NSApp.applicationIconImage = icon
                 }
             }
-        }.windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
-            .commands {
-                CommandMenu("Widget") {
-                    Button("Toggle floating widget") { DemoWidgetController.shared.toggleWidget() }
-                        .keyboardShortcut("j", modifiers: [.command, .option])
-                    Button("Show floating widget") { DemoWidgetController.shared.show() }
-                        .keyboardShortcut("w", modifiers: [.command, .option])
-                    Button("Hide floating widget") { DemoWidgetController.shared.hide() }
-                }
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .commands {
+            CommandMenu("Widget") {
+                Button("Toggle floating widget") { DemoWidgetController.shared.toggleWidget() }
+                    .keyboardShortcut("j", modifiers: [.command, .option])
+                Button("Show floating widget") { DemoWidgetController.shared.show() }
+                    .keyboardShortcut("w", modifiers: [.command, .option])
+                Button("Hide floating widget") { DemoWidgetController.shared.hide() }
             }
+        }
     }
 }
+
 @main
 struct DemoEntry {
     static func withoutPNGMetadata(_ data: Data) throws -> Data {
@@ -58,20 +66,42 @@ struct DemoEntry {
             do {
                 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
                 JarvisStore.shared.history.turns = [
-                    JarvisTurn(role: "user", text: "What are my AI token quotas and system status?"),
-                    JarvisTurn(role: "assistant", text: "You have 82% remaining on Claude Code (5h window resets in 3h 14m) and 58% on OpenAI Codex. Local Ollama (llama3.2) is online and ready for private offline tasks.")
+                    JarvisTurn(
+                        role: "user",
+                        text: "Audit my AI token quotas, active localhost ports, and local Ollama models before I kick off the multi-repo refactor."
+                    ),
+                    JarvisTurn(
+                        role: "assistant",
+                        text: "All systems are green on your M3 Max (18.6 / 36 GB RAM used, 14-core load 1.42):\n\n• Claude Code Max 20x: 76% remaining in your 5h sliding window (resets in 3h 18m) and 64% remaining on your 7-day rolling cap.\n• OpenAI Codex Pro 20x: 71% weekly compute remaining (resets in 4d).\n• Local Ollama (:11434): Online (1ms ping) with llama3.2:latest and deepseek-r1:14b warm in Metal unified memory.\n• Dev Ports: Next.js (:3000), Vite (:5173), FastAPI (:8000), and PostgreSQL (:5432) are listening.",
+                        actions: [
+                            JarvisAction(kind: "open", targetID: "dev:cursor", label: "Open Cursor AI IDE"),
+                            JarvisAction(kind: "open", targetID: "link:nextjs", label: "Launch Next.js (:3000)"),
+                            JarvisAction(kind: "open", targetID: "dev:github", label: "Review GitHub PRs")
+                        ]
+                    ),
+                    JarvisTurn(
+                        role: "user",
+                        text: "Switch local inference to deepseek-r1:14b for offline test generation so we preserve the Claude 5h burst window."
+                    ),
+                    JarvisTurn(
+                        role: "assistant",
+                        text: "Routed local code generation and test synthesis to deepseek-r1:14b (Q4_K_M · 9.0 GB VRAM · 48 tok/s). Zero external API tokens will be consumed.",
+                        actions: [
+                            JarvisAction(kind: "open", targetID: "dev:terminal", label: "Open Ghostty / iTerm")
+                        ]
+                    )
                 ]
                 let renders: [(String, AnyView, NSSize)] = [
-                    ("overview", AnyView(DemoDashboard()), NSSize(width: 1180, height: 900)),
-                    ("shortcuts", AnyView(DemoDashboard(page: "Shortcuts")), NSSize(width: 1180, height: 900)),
+                    ("overview", AnyView(DemoDashboard(page: "Overview")), NSSize(width: 1180, height: 900)),
                     ("assistant", AnyView(DemoDashboard(page: "Assistant")), NSSize(width: 1180, height: 900)),
-                    ("floating-widget", AnyView(DemoFloatingBar()), NSSize(width: 590, height: 58)),
-                    ("widget-details", AnyView(AIQuotaPanel(store: AIQuotaStore.shared).background(OLED.canvas).foregroundStyle(OLED.text).preferredColorScheme(.dark)), NSSize(width: 480, height: 340)),
-                    ("subscriptions", AnyView(DemoDashboard(page: "Subscriptions")), NSSize(width: 1180, height: 900)),
-                    ("cats", AnyView(DemoDashboard(page: "Cats")), NSSize(width: 1180, height: 900)),
                     ("projects", AnyView(DemoDashboard(page: "Projects")), NSSize(width: 1180, height: 900)),
-                    ("youtube", AnyView(DemoDashboard(page: "YouTube")), NSSize(width: 1180, height: 900)),
-                    ("revenue", AnyView(DemoDashboard(page: "Revenue")), NSSize(width: 1180, height: 900))
+                    ("shortcuts", AnyView(DemoDashboard(page: "Shortcuts")), NSSize(width: 1180, height: 900)),
+                    ("subscriptions", AnyView(DemoDashboard(page: "Subscriptions")), NSSize(width: 1180, height: 900)),
+                    ("floating-widget", AnyView(DemoFloatingBar()), NSSize(width: 680, height: 58)),
+                    ("widget-details", AnyView(AIQuotaPanel(store: AIQuotaStore.shared).background(OLED.canvas).foregroundStyle(OLED.text).preferredColorScheme(.dark)), NSSize(width: 540, height: 340)),
+                    ("cats", AnyView(DemoDashboard(page: "Quotas")), NSSize(width: 1180, height: 900)),
+                    ("youtube", AnyView(DemoDashboard(page: "Projects")), NSSize(width: 1180, height: 900)),
+                    ("revenue", AnyView(InfrastructurePanel(store: InfrastructureStore.shared).background(OLED.canvas).foregroundStyle(OLED.text).preferredColorScheme(.dark)), NSSize(width: 640, height: 490))
                 ]
                 for (page, content, size) in renders {
                     _ = NSApplication.shared

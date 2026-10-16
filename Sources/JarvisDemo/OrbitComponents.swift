@@ -3,16 +3,16 @@ import AppKit
 import UserNotifications
 import UniformTypeIdentifiers
 
-// OLED palette: black OrbitCanvas, low-luminance surfaces, softened text and accents.
-let OrbitCanvas = Color.black
-let OrbitSurface = Color(white:0.045)
-let OrbitPrimaryText = Color(white:0.82)
-let OrbitMutedText = Color(white:0.57)
-let OrbitAccent = Color(red:0.57, green:0.72, blue:0.40)
-let OrbitReviewTint = Color(red:0.78, green:0.57, blue:0.32)
-let OrbitEndingTint = Color(red:0.74, green:0.66, blue:0.38)
-let OrbitCloudTint = Color(red:0.39, green:0.66, blue:0.71)
-let OrbitErrorTint = Color(red:0.84, green:0.40, blue:0.38)
+// Obsidian & cosmic violet palette matching Jarvis Command Center
+let OrbitCanvas = Color(red: 0.045, green: 0.048, blue: 0.072)
+let OrbitSurface = Color(red: 0.082, green: 0.088, blue: 0.125)
+let OrbitPrimaryText = Color(white: 0.96)
+let OrbitMutedText = Color(white: 0.60)
+let OrbitAccent = Color(red: 0.58, green: 0.38, blue: 1.0)
+let OrbitReviewTint = Color(red: 0.98, green: 0.72, blue: 0.22)
+let OrbitEndingTint = Color(red: 0.98, green: 0.62, blue: 0.28)
+let OrbitCloudTint = Color(red: 0.22, green: 0.78, blue: 0.98)
+let OrbitErrorTint = Color(red: 0.98, green: 0.42, blue: 0.42)
 let OrbitCategories = ["Entertainment", "Software", "Cloud & storage", "Health", "Learning", "Utilities", "Other"]
 let OrbitCurrencies = ["USD", "EUR", "GBP", "MAD", "CAD", "AUD", "CHF", "JPY", "AED", "INR", "TRY", "VND"]
 struct OrbitSubscription: Codable, Identifiable, Equatable {
@@ -232,19 +232,22 @@ func OrbitHigherMonthlyCost(_ a: OrbitSubscription, _ b: OrbitSubscription, rate
 struct OrbitPrimaryButton: ButtonStyle {
     @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.system(size:13,weight:.semibold)).foregroundStyle(enabled ? Color.black : OrbitMutedText)
+        configuration.label.font(.system(size:13,weight:.semibold)).foregroundStyle(enabled ? Color.white : OrbitMutedText)
             .padding(.horizontal,16).frame(minHeight:38)
-            .background(enabled ? OrbitAccent.opacity(configuration.isPressed ? 0.75 : 1) : Color.white.opacity(0.08),in:RoundedRectangle(cornerRadius:9))
+            .background(enabled ? OrbitAccent.opacity(configuration.isPressed ? 0.78 : 1) : Color.white.opacity(0.08),in:RoundedRectangle(cornerRadius:9))
             .contentShape(Rectangle())
     }
 }
 // Local provider artwork; no network requests or subscription data leave the app.
 let OrbitBrandNames: [(String,String)] = [
     ("chatgpt","openai"),
+    ("openai","openai"),
+    ("codex","openai"),
     ("claude","anthropic"),
+    ("anthropic","anthropic"),
     ("youtube","youtube"),
     ("adobe","adobe"),
-    ("amazon","amazon"),
+    ("amazon prime","amazon"),
     ("apple music","applemusic"),
     ("bevel","bevel"),
     ("canva","canva"),
@@ -278,6 +281,7 @@ let OrbitBrandNames: [(String,String)] = [
     ("zwift","zwift"),
     ("cfg bank","cfg"),
     ("google ai","google"),
+    ("gemini","google"),
     ("chess.com","chess"),
     ("x premium","x"),
     ("personality.co","personality"),
@@ -293,17 +297,33 @@ struct OrbitServiceLogo: View {
         guard let url = Bundle.module.url(forResource:key,withExtension:"png"), let image = NSImage(contentsOf:url) else { return nil }
         return (key,image)
     })
+    private var devSymbol: (String, Color)? {
+        let lower = item.name.lowercased()
+        if lower.contains("aws") || lower.contains("amazon") { return ("server.rack", OrbitEndingTint) }
+        if lower.contains("cursor") { return ("sparkles.rectangle.stack.fill", OrbitCloudTint) }
+        if lower.contains("github") || lower.contains("copilot") { return ("chevron.left.forwardslash.chevron.right", OrbitAccent) }
+        if lower.contains("vercel") { return ("triangle.fill", Color.white) }
+        if lower.contains("supabase") { return ("bolt.fill", Color(red: 0.24, green: 0.84, blue: 0.58)) }
+        if lower.contains("raycast") { return ("command.square.fill", Color(red: 0.98, green: 0.38, blue: 0.38)) }
+        if lower.contains("linear") { return ("circle.grid.cross.fill", OrbitAccent) }
+        if lower.contains("cloudflare") { return ("cloud.bolt.fill", OrbitEndingTint) }
+        if lower.contains("docker") { return ("shippingbox.fill", OrbitCloudTint) }
+        return nil
+    }
     var body: some View {
         let key = OrbitBrandKey(item.name)
         Group {
             if let key, let image = Self.images[key] {
-                Image(nsImage:image).resizable().interpolation(.high).scaledToFit().padding(size * 0.07)
+                Image(nsImage:image).resizable().interpolation(.high).scaledToFit().padding(size * 0.08)
+            } else if let (sym, tint) = devSymbol {
+                Image(systemName: sym).font(.system(size: size * 0.44, weight: .semibold)).foregroundStyle(tint)
             } else {
                 Text(String(item.name.prefix(1))).font(.system(size:size * 0.45,weight:.semibold)).foregroundStyle(OrbitAccent)
             }
         }.frame(width:size,height:size)
-            .background(Color(white:0.075),in:RoundedRectangle(cornerRadius:size * 0.23))
-            .clipShape(RoundedRectangle(cornerRadius:size * 0.23))
+            .background(OLED.raised,in:RoundedRectangle(cornerRadius:size * 0.25, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius:size * 0.25, style: .continuous).stroke(OLED.border, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius:size * 0.25, style: .continuous))
             .accessibilityHidden(true)
     }
 }

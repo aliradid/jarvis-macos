@@ -1,126 +1,142 @@
-# Jarvis for macOS
-
 <p align="center">
-  <img src="docs/images/logo.png" width="120" height="120" alt="Jarvis macOS Logo">
+  <img src="docs/images/logo.png" width="128" height="128" alt="Jarvis for macOS Logo">
 </p>
 
-<h2 align="center">The OLED-dark native macOS workspace & real-time AI quota command center.</h2>
+<h1 align="center">Jarvis for macOS</h1>
 
 <p align="center">
-  <a href="https://github.com/aliradid/jarvis-macos/releases"><img src="https://img.shields.io/github/v/release/aliradid/jarvis-macos?color=7C3AED&logo=github" alt="Release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/Platform-macOS%2013%2B-black.svg?logo=apple" alt="macOS 13+"></a>
-  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9%2B-F05138.svg?logo=swift" alt="Swift 5.9+"></a>
-  <a href="https://github.com/aliradid/jarvis-macos/actions/workflows/checks.yml"><img src="https://github.com/aliradid/jarvis-macos/actions/workflows/checks.yml/badge.svg" alt="CI Checks"></a>
+  <strong>The Native macOS AI & Developer Command Center — Live Claude Code & OpenAI Codex Quotas, Local Ollama Assistant, Darwin Telemetry, Localhost Port Scanner, and AI Spend Tracker.</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/aliradid/jarvis-macos/releases/latest">Download DMG</a> •
-  <a href="#quick-install-terminal">Quick Install</a> •
-  <a href="ROADMAP.md">Roadmap</a> •
-  <a href="CONTRIBUTING.md">Contributing</a> •
-  <a href="docs/ARCHITECTURE.md">Architecture</a>
+  <a href="https://github.com/aliradid/jarvis-macos/releases/latest"><img src="https://img.shields.io/github/v/release/aliradid/jarvis-macos?color=8B5CF6&label=Release&logo=apple" alt="Latest Release"></a>
+  <a href="https://github.com/aliradid/jarvis-macos/actions/workflows/checks.yml"><img src="https://img.shields.io/github/actions/workflow/status/aliradid/jarvis-macos/checks.yml?branch=main&label=CI%20%26%20Visual%20QA&logo=github" alt="CI Checks"></a>
+  <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B%20(Ventura%20%E2%86%92%20Sequoia)-111827?logo=apple" alt="macOS 13+"></a>
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0%20%2F%20SwiftUI%20%2B%20AppKit-F05138?logo=swift" alt="Swift"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-34D399.svg" alt="License: MIT"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/aliradid/jarvis-macos/releases/latest"><strong>⬇ Download Universal DMG (v2.0.0)</strong></a> •
+  <a href="#quick-install-one-liner"><strong>One-Line Install</strong></a> •
+  <a href="#the-5-core-pillars"><strong>5 Core Pillars</strong></a> •
+  <a href="#floating-hud--menu-bar"><strong>Floating HUD</strong></a> •
+  <a href="#keyboard-shortcuts"><strong>Shortcuts</strong></a>
 </p>
 
 ---
 
-Jarvis brings your active projects, browser shortcuts, recurring subscriptions, pet expenses, and real-time AI quota monitoring (Claude Code & OpenAI Codex) into a single high-performance native macOS app built with SwiftUI and AppKit.
+![Jarvis Command Center Overview](docs/images/overview.png)
 
-* 🚀 **Floating HUD Widget:** Always-accessible draggable floating pill displaying live Claude session & weekly usage, Codex quotas, machine health, and quick-launch channels.
-* 🤖 **Local Offline AI Assistant:** Direct connection to local [Ollama](https://ollama.com) (`127.0.0.1:11434`) with dynamic model detection (`llama3.2`, `mistral`, `deepseek-r1`). 100% private, zero token costs.
-* ⚡ **Global Shortcuts & Menu Bar:** Press `⌥⌘J` anytime to toggle the floating HUD from any macOS Space, or `⌥⌘W` to bring it to front. Click the sparkles icon in the menu bar for one-click controls.
-* 📊 **Live AI Usage Tracking:** Direct integration with Claude Code (`~/.claude/.credentials.json` & Keychain) and OpenAI Codex CLI (`~/.codex/auth.json`) to track remaining tokens and sliding-window resets.
-* 💳 **Orbit Subscriptions:** Local-first recurring cost manager with currency normalization (USD/MAD/EUR/GBP), live exchange rates via ECB, renewal alerts, and trial countdowns.
-* 🐾 **Pet Expenses:** Full monthly breakdown, category filtering, search, and native JSON backup import/export.
-* 🔒 **Local & Private:** Zero telemetry, no cloud accounts required. All data persists safely in `~/Library/Application Support/Jarvis/`. Run with `--demo` anytime to explore with isolated sample fixtures.
+## Why Jarvis for macOS?
 
-## Workspace
+Modern AI-native engineering spans multiple token windows, local LLM runtimes, microservices, and recurring cloud tools. **Jarvis for macOS** unifies your entire local developer stack into a zero-cost (`$0`), 100% private native SwiftUI & AppKit desktop command center:
 
-![Workspace with sample projects and shortcuts](docs/images/overview.png)
+- **Live AI Token Quotas (`Claude Code` + `OpenAI Codex`):** Reads your local macOS Keychain (`Claude Code-credentials` / `~/.claude/.credentials.json`) and Codex session (`~/.codex/auth.json`) to display real-time **5-hour sliding session** and **7-day rolling weekly** utilization with circular gauges and exact reset countdowns.
+- **Private Local Ollama Assistant (`127.0.0.1:11434`):** Chat with local GGUF models (`llama3.2:latest`, `deepseek-r1:14b`, `qwen2.5-coder:32b`), switch system prompt presets, and trigger one-click workspace actions with zero API fees.
+- **Real Darwin Kernel Telemetry & Port Scanner:** Native `sysctl`, `host_statistics64`, and non-blocking BSD socket probes monitor real CPU load, Unified Memory, NVMe disk usage, and listening localhost dev servers (`:3000` Next.js, `:5173` Vite, `:8000` FastAPI, `:11434` Ollama, `:5432` PostgreSQL, `:6379` Redis).
+- **Always-On Floating HUD (`⌥⌘J`):** Draggable non-activating `NSPanel` pill that floats across all macOS Spaces and full-screen apps for instant quota & port visibility.
+- **AI & Cloud Spend Tracker (`Orbit`):** Track recurring AI & developer subscriptions (`Claude Max`, `ChatGPT Pro`, `Cursor Pro`, `GitHub Copilot`, `AWS`, `Vercel`, `Supabase`) with live multi-currency normalization (`USD`, `EUR`, `GBP`, `MAD`) and renewal reminders.
 
-The home dashboard features quick access shortcuts, design files, recent work, daily checklist, pinned actions, and items needing immediate attention.
+---
 
-## Floating HUD Widget
+## Quick Install (One-Liner)
 
-![Floating widget with sample readings](docs/images/floating-widget.png)
-
-Choose **Widget → Show floating widget** (`⌥⌘W`) or press `⌥⌘J` to toggle. Drag the handle to reposition anywhere on screen, click quota or status indicators for deep-dive panels, or jump straight back to the main workspace.
-
-![Original quota panel with sample values](docs/images/widget-details.png)
-
-## Subscriptions & Finances
-
-![Orbit subscription interface with real providers and billing data](docs/images/subscriptions.png)
-
-The Orbit interface includes monthly and yearly USD/MAD totals, billing-cycle conversion, a renewal timeline, trials, ending plans, records needing review, search, sorting and archiving. The subscription editor retains price and date certainty, reminder settings, notes and source fields.
-
-## Expenses and Analytics
-
-![Cat expenses](docs/images/cats.png)
-
-Cat expenses retain the original monthly view, category totals, search, filters, editing, archiving and import/export controls.
-
-![YouTube analytics with channels](docs/images/youtube.png)
-
-![Revenue and RPM chart](docs/images/revenue.png)
-
-## Projects & Local AI Assistant
-
-![Project cards with sample projects](docs/images/projects.png)
-
-![Original shortcuts interface](docs/images/shortcuts.png)
-
-![Assistant interface](docs/images/assistant.png)
-
-The assistant connects to your local Ollama instance (`127.0.0.1:11434`) for private local AI conversations, auto-detecting any models you have pulled locally.
-
-## Installation & Download
-
-### Quick Install (Terminal)
-Install the latest release directly to `/Applications` with a single command:
+Install the latest signed Universal `.app` directly to `/Applications` from your terminal:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/aliradid/jarvis-macos/main/scripts/install.sh | bash
 ```
 
-### Manual Download
-Download the latest `Jarvis.dmg` from the **[Releases](https://github.com/aliradid/jarvis-macos/releases)** page, double-click to open, and drag **Jarvis.app** into your `/Applications` folder.
+Or download **`Jarvis.dmg`** directly from the **[Latest GitHub Release](https://github.com/aliradid/jarvis-macos/releases/latest)** and drag **Jarvis.app** to `/Applications`.
 
-### Build from Source
-Requires macOS 13 or later and Swift 5.9 or later. Zero third-party package dependencies.
+---
+
+## The 5 Core Pillars
+
+### 1. Command Center (`Overview`)
+Your real-time mission control: circular quota rings for **Claude Code Max 20x** and **OpenAI Codex Pro 20x**, active **Ollama** runtime status, **Darwin Mach telemetry** bars (CPU, Unified RAM, NVMe SSD), listening **localhost dev servers** with ping latencies, one-click **IDE launchers** (`⌘1`–`⌘6`), **Active Git Repositories**, and your **Engineering Focus Queue**.
+
+### 2. Local Ollama AI Assistant (`Assistant`)
+![Jarvis Local Ollama AI Assistant](docs/images/assistant.png)
+
+- **Model Selector Bar:** Switch instantaneously between installed local models (`llama3.2:latest`, `deepseek-r1:14b`, `qwen2.5-coder:32b`) discovered via `http://127.0.0.1:11434/api/tags`.
+- **Mode Presets:** Tailor system instructions for *Architecture & Code*, *Quota & Burn Advisor*, or *Shell & DevOps*.
+- **Executable Action Pills:** Jarvis responses include interactive action buttons to launch Cursor AI, open localhost servers, or jump to GitHub PRs.
+
+### 3. AI Quotas & Local Models (`Quotas`)
+![AI Quotas & Local GGUF Models](docs/images/cats.png)
+
+- **Deep-Dive Token Windows:** Track both the **5-Hour Sliding Session Window** and **7-Day Rolling Weekly Cap** for Claude Code alongside OpenAI Codex's primary weekly compute window.
+- **Installed GGUF Inventory:** Inspect every local Ollama model's architecture family, parameter count, quantization level (`Q4_K_M`, `F16`), Unified VRAM footprint, and warm/standby status.
+
+### 4. Dev Environment, Localhost Ports & Quick Launchers (`Dev Env` & `Launchers`)
+![Dev Environment & Localhost Ports](docs/images/projects.png)
+
+- **Non-Blocking TCP Port Scanner:** Automatically probes ports `3000`, `5173`, `8000`, `11434`, `5432`, `6379`, and `8080` on `127.0.0.1`, reporting sub-millisecond response times and one-click browser launch.
+- **Instant Keyboard Launchpad (`⌘1`–`⌘9`):** Launch IDEs, cloud consoles, local endpoints, and pinned architecture specs/model weights in a single keystroke.
+
+![Quick Launchers & Workspace Assets](docs/images/shortcuts.png)
+
+### 5. AI & Cloud Spend (`Subscriptions`)
+![AI & Cloud Spend Tracker](docs/images/subscriptions.png)
+
+- **Purpose-Built for Engineering Stacks:** Keep your recurring AI, IDE, and cloud infrastructure costs (`Claude Max`, `ChatGPT Pro`, `Cursor`, `Copilot`, `AWS`, `Vercel`, `Raycast`, `Linear`) organized in one local-first ledger.
+- **Multi-Currency Normalization:** Automatically converts `EUR`, `GBP`, `MAD`, and 10+ currencies into unified monthly and annual `USD` + `MAD` totals with 30-day renewal timelines.
+
+---
+
+## Floating HUD & Menu Bar
+
+![Floating HUD Bar](docs/images/floating-widget.png)
+
+Press **`⌥⌘J`** from any app or click the `sparkles` icon in the macOS menu bar to toggle the floating HUD pill. Click the quota badge or telemetry strip in the HUD to open rich popovers without leaving your code editor:
+
+<p align="center">
+  <img src="docs/images/widget-details.png" width="48%" alt="Live AI Quota Popover">
+  <img src="docs/images/revenue.png" width="48%" alt="System Telemetry & Local Runtime Popover">
+</p>
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action | Scope |
+| :--- | :--- | :--- |
+| `⌥⌘J` | Toggle Floating HUD Pill | Global / Menu Bar |
+| `⌥⌘W` | Show & Focus Floating HUD | Application Menu |
+| `⌘1` – `⌘9` | Launch Pinned IDE / Console Tile | Command Center & Launchers |
+| `⌘F` | Focus Instant Command & Port Search | Main Window |
+| `⌘N` | Add New AI / Cloud Subscription | AI & Cloud Spend |
+
+---
+
+## Build from Source & Verification
+
+Requires **macOS 13.0+** and **Swift 5.9+**. Zero external Swift package dependencies.
 
 ```sh
 git clone https://github.com/aliradid/jarvis-macos.git
 cd jarvis-macos
 
-# Run Jarvis (starts your own real workspace, saved locally)
+# Run your live local workspace (persists to ~/Library/Application Support/Jarvis/)
 swift run Jarvis
 
-# Or explore in isolated demo mode with synthetic fixtures
+# Or launch with isolated demonstration fixtures
 swift run Jarvis --demo
 ```
 
-## Global Keyboard Shortcuts
-
-| Shortcut | Action | Scope |
-| :--- | :--- | :--- |
-| `⌥⌘J` | Toggle Floating HUD Widget | Global (any application or Space) |
-| `⌥⌘W` | Show & Focus Floating Widget | In-app / Global |
-| `⌘F` | Focus Workspace Search | Main Window |
-
-## Verification & Checks
-
+### Automated Verification Suite
 ```sh
 python3 scripts/check_publication.py
 swift build
 bash scripts/test-core.sh
 swift run JarvisDemo --check
+swift run JarvisDemo --render docs/images
 ```
 
-The regression suite validates configuration recovery from corruption, duplicate ID rejection, URL safety filters, and model calculations.
-
-See [architecture](docs/ARCHITECTURE.md), [source fidelity](docs/SOURCE_FIDELITY.md), [publication boundaries](docs/PUBLICATION.md) and [security](SECURITY.md).
+See [Architecture](docs/ARCHITECTURE.md), [Source Fidelity](docs/SOURCE_FIDELITY.md), [Publication Boundaries](docs/PUBLICATION.md), and [Security Policy](SECURITY.md).
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE). Brand artwork is included solely to identify compatible external services; trademarks remain the property of their respective owners.
+Released under the [MIT License](LICENSE). Third-party service icons are included solely to identify user-configured developer tools and subscriptions; all trademarks belong to their respective owners.
